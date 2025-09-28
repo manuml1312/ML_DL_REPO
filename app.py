@@ -488,7 +488,7 @@ uploaded_protocol_file = st.file_uploader("Upload Protocol REF (.pdf)", type="pd
 
 # Process Button
 if st.button("Process Documents"):
-    if uploaded_crf_file is not None and uploaded_protocol_file is not None:
+    if uploaded_crf_file is not None or uploaded_protocol_file is not None:
         st.info("Processing documents...")
 
         # Save uploaded files temporarily

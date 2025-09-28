@@ -2,3 +2,4 @@ streamlit
 camelot-py[base]
 PyMuPDF
 python-docx
+openai

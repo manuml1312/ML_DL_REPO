@@ -12,7 +12,7 @@ import os
 # Ensure you have your OpenAI API key set up as an environment variable or use Streamlit secrets
 # api_key = st.secrets["openai_api_key"]
 # For this example, I'll use the key you provided, but using Streamlit secrets is recommended for deployment
-api_key=st.secrets.apikey # Replace with your actual key or st.secrets
+api_key=st.secrets.api_key # Replace with your actual key or st.secrets
 client = OpenAI(api_key=api_key)
 
 

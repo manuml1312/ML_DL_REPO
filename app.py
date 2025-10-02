@@ -275,56 +275,7 @@ def process_protocol_pdf_pdfplumber(pdf_path: str) -> pd.DataFrame:
     Processes the Protocol REF PDF to extract tables using pdfplumber and cleans data with API.
 
     """
-    """
-    Processes the Protocol REF PDF to extract the Schedule of Activities table.
-    """
-    pdf_document = fitz.open(pdf_path)
 
-    page_texts = []
-    for page_num in range(pdf_document.page_count):
-        page = pdf_document.load_page(page_num)
-        page_text = page.get_text()
-        page_texts.append(page_text)
-
-    schedule_start_page = None
-    intro_start_page = None
-
-    # Regex to find the headings, looking for the exact phrases
-    schedule_pattern = re.compile(r"schedule of activities", re.IGNORECASE)
-    intro_pattern = re.compile(r"introduction", re.IGNORECASE)
-
-    # Start searching from page 2 (index 1) to skip initial sections
-    start_search_index = 1
-
-    for i in range(start_search_index, len(page_texts)):
-        text = page_texts[i]
-        if schedule_start_page is None and schedule_pattern.search(text):
-            schedule_start_page = i + 1
-        if intro_start_page is None and intro_pattern.search(text):
-            intro_start_page = i + 1
-
-    start_page = schedule_start_page
-    end_page = intro_start_page
-
-    output_pdf = fitz.open()
-
-    if start_page is not None and end_page is not None:
-        st.write(f"Found 'Schedule of Activities' starting on page: {start_page}")
-        st.write(f"Found 'Introduction' starting on page: {end_page}")
-        st.write(f"Extracting pages {start_page} to {end_page - 1} for Schedule of Activities.")
-
-        # Extract pages from start_page up to (but not including) end_page
-        for page_num in range(start_page - 1, end_page - 1):
-            output_pdf.insert_pdf(pdf_document, from_page=page_num, to_page=page_num)
-
-        extracted_pdf_path = "Schedule_of_Activities.pdf"
-        output_pdf.save(extracted_pdf_path)
-        output_pdf.close()
-        pdf_document.close()
-
-        st.write(f"Saved extracted section to {extracted_pdf_path}")
-
-        # Use Camelot to read tables from the extracted PDF
     system_prompt_pr = """You are a clinical trial data structuring specialist. Clean and restructure the provided Schedule of Activities table JSON.
 
 INPUT: A messy JSON where:
@@ -375,111 +326,158 @@ CRITICAL: When splitting merged visits, ensure that:
 
 Return ONLY the cleaned JSON object, no explanations."""
 
-    all_extracted_data = []
+    pdf_document = fitz.open(pdf_path)
 
-    table_settings = {
-        "vertical_strategy": "lines", "horizontal_strategy": "lines","explicit_vertical_lines": [],
-        "explicit_horizontal_lines": [],"snap_tolerance": 300,
-        "snap_x_tolerance": 6,
-        "snap_y_tolerance": 5.16,
-        "join_tolerance": 1,
-        "join_x_tolerance": 2,
-        "join_y_tolerance": 3,
-        "edge_min_length": 100,
-        "min_words_vertical": 3,
-        "min_words_horizontal": 1,
-        "intersection_tolerance": 1,
-        "intersection_x_tolerance": 0.4,
-        "intersection_y_tolerance": 2,
-        "text_tolerance": 3,
-        "text_x_tolerance": 5,
-        "text_y_tolerance": 3,
-    }
+    page_texts = []
+    for page_num in range(pdf_document.page_count):
+        page = pdf_document.load_page(page_num)
+        page_text = page.get_text()
+        page_texts.append(page_text)
 
+    schedule_start_page = None
+    intro_start_page = None
 
-    try:
-        with pdfplumber.open(extracted_pdf_path) as pdf:
-            st.write(f"Opened PDF with {len(pdf.pages)} pages for table extraction.")
+    # Regex to find the headings, looking for the exact phrases
+    schedule_pattern = re.compile(r"schedule of activities", re.IGNORECASE)
+    intro_pattern = re.compile(r"introduction", re.IGNORECASE)
 
-            progress_text = "Extracting tables from Protocol REF PDF..."
-            my_bar = st.progress(0, text=progress_text)
+    # Start searching from page 2 (index 1) to skip initial sections
+    start_search_index = 1
 
-            for i in range(len(pdf.pages)):
-                page = pdf.pages[i]
-                st.write(f"Processing page {i+1}...")
+    for i in range(start_search_index, len(page_texts)):
+        text = page_texts[i]
+        if schedule_start_page is None and schedule_pattern.search(text):
+            schedule_start_page = i + 1
+        if intro_start_page is None and intro_pattern.search(text):
+            intro_start_page = i + 1
 
-                # Extract table using the specified settings
-                tables_on_page = page.extract_tables(table_settings=table_settings)
+    start_page = schedule_start_page
+    end_page = intro_start_page
 
-                if tables_on_page:
-                    st.write(f"Found {len(tables_on_page)} tables on page {i+1}.")
-                    for table_data in tables_on_page:
-                        # Convert extracted table data to a list of lists
-                        raw_data = [list(row) for row in table_data]
+    output_pdf = fitz.open()
 
-                        # Convert to JSON string for API input
-                        raw_json = json.dumps({"data": raw_data})
+    if start_page is not None and end_page is not None:
+        st.write(f"Found 'Schedule of Activities' starting on page: {start_page}")
+        st.write(f"Found 'Introduction' starting on page: {end_page}")
+        st.write(f"Extracting pages {start_page} to {end_page - 1} for Schedule of Activities.")
 
-                        user_prompt_pr = f"""INPUT JSON: {raw_json}
+        # Extract pages from start_page up to (but not including) end_page
+        for page_num in range(start_page - 1, end_page - 1):
+            output_pdf.insert_pdf(pdf_document, from_page=page_num, to_page=page_num)
 
-                        Clean and return the structured JSON."""
+        extracted_pdf_path = "Schedule_of_Activities.pdf"
+        output_pdf.save(extracted_pdf_path)
+        output_pdf.close()
+        pdf_document.close()
 
-                        messages_new = [{'role':'system','content':system_prompt_pr}]
-                        messages_new.append({'role':'user','content':user_prompt_pr})
+        st.write(f"Saved extracted section to {extracted_pdf_path}")
 
-                        try:
-                            response = client.chat.completions.create(
-                                model="o4-mini",
-                                messages=messages_new,
-                                response_format={"type": "json_object"}
-                            )
-                            cleaned_data_json = json.loads(response.choices[0].message.content)
-
-                            if 'data' in cleaned_data_json and cleaned_data_json['data']:
-                                # Extend the main list with rows from this table
-                                all_extracted_data.extend(cleaned_data_json['data'])
-                            else:
-                                st.warning(f"API returned empty or invalid data for a table on page {i+1}.")
-
-                        except Exception as api_e:
-                            st.error(f"API error cleaning table data from page {i+1}: {api_e}")
-
-                # Update progress bar
-                progress_percentage = (i + 1) / len(pdf.pages)
-                my_bar.progress(progress_percentage, text=f"Extracting tables from Protocol REF PDF (page {i+1}/{len(pdf.pages)})...")
-                break
-            my_bar.empty() # Clear progress bar on completion
-
-            if all_extracted_data:
-                # Convert the list of lists into a DataFrame
-                pr_df = pd.DataFrame(all_extracted_data)
-
-                # Assuming the first row is the header and setting it
-                if not pr_df.empty:
-                    # Check if the first row actually looks like a header
-                    # (e.g., no duplicate column names if converted directly)
-                    # A more robust check might be needed depending on table structure
-                    pr_df.columns = pr_df.iloc[0]
-                    pr_df = pr_df[1:].reset_index(drop=True)
-
-                # Add new columns if they don't exist (adjust column names as needed)
-                # new_cols_to_add = ['Common Forms', 'Unscheduled', 'Is Form Dynamic?', 'Form Dynamic Criteria', 'Additional Programming Instructions']
-                # for col in new_cols_to_add:
-                #     if col not in pr_df.columns:
-                #         pr_df[col] = ''
-
-                # Drop columns that are entirely NaN after processing
-                pr_df = pr_df.dropna(axis=1, how='all')
-
-                return pr_df
-
-            else:
-                st.warning("No tables found or extracted successfully from the Protocol REF PDF using pdfplumber.")
-                return pd.DataFrame()
-
-    except Exception as e:
-        st.error(f"Error processing Protocol REF PDF with pdfplumber: {e}")
-        return pd.DataFrame()
+        # Use Camelot to read tables from the extracted PDF
+        all_extracted_data = []
+    
+        table_settings = {
+            "vertical_strategy": "lines", "horizontal_strategy": "lines","explicit_vertical_lines": [],
+            "explicit_horizontal_lines": [],"snap_tolerance": 300,
+            "snap_x_tolerance": 6,
+            "snap_y_tolerance": 5.16,
+            "join_tolerance": 1,
+            "join_x_tolerance": 2,
+            "join_y_tolerance": 3,
+            "edge_min_length": 100,
+            "min_words_vertical": 3,
+            "min_words_horizontal": 1,
+            "intersection_tolerance": 1,
+            "intersection_x_tolerance": 0.4,
+            "intersection_y_tolerance": 2,
+            "text_tolerance": 3,
+            "text_x_tolerance": 5,
+            "text_y_tolerance": 3,
+        }
+    
+    
+        try:
+            with pdfplumber.open(extracted_pdf_path) as pdf:
+                st.write(f"Opened PDF with {len(pdf.pages)} pages for table extraction.")
+    
+                progress_text = "Extracting tables from Protocol REF PDF..."
+                my_bar = st.progress(0, text=progress_text)
+    
+                for i in range(len(pdf.pages)):
+                    page = pdf.pages[i]
+                    st.write(f"Processing page {i+1}...")
+    
+                    # Extract table using the specified settings
+                    tables_on_page = page.extract_tables(table_settings=table_settings)
+    
+                    if tables_on_page:
+                        st.write(f"Found {len(tables_on_page)} tables on page {i+1}.")
+                        for table_data in tables_on_page:
+                            # Convert extracted table data to a list of lists
+                            raw_data = [list(row) for row in table_data]
+    
+                            # Convert to JSON string for API input
+                            raw_json = json.dumps({"data": raw_data})
+    
+                            user_prompt_pr = f"""INPUT JSON: {raw_json}
+    
+                            Clean and return the structured JSON."""
+    
+                            messages_new = [{'role':'system','content':system_prompt_pr}]
+                            messages_new.append({'role':'user','content':user_prompt_pr})
+    
+                            try:
+                                response = client.chat.completions.create(
+                                    model="o4-mini",
+                                    messages=messages_new,
+                                    response_format={"type": "json_object"}
+                                )
+                                cleaned_data_json = json.loads(response.choices[0].message.content)
+    
+                                if 'data' in cleaned_data_json and cleaned_data_json['data']:
+                                    # Extend the main list with rows from this table
+                                    all_extracted_data.extend(cleaned_data_json['data'])
+                                else:
+                                    st.warning(f"API returned empty or invalid data for a table on page {i+1}.")
+    
+                            except Exception as api_e:
+                                st.error(f"API error cleaning table data from page {i+1}: {api_e}")
+    
+                    # Update progress bar
+                    progress_percentage = (i + 1) / len(pdf.pages)
+                    my_bar.progress(progress_percentage, text=f"Extracting tables from Protocol REF PDF (page {i+1}/{len(pdf.pages)})...")
+                    break
+                my_bar.empty() # Clear progress bar on completion
+    
+                if all_extracted_data:
+                    # Convert the list of lists into a DataFrame
+                    pr_df = pd.DataFrame(all_extracted_data)
+    
+                    # Assuming the first row is the header and setting it
+                    if not pr_df.empty:
+                        # Check if the first row actually looks like a header
+                        # (e.g., no duplicate column names if converted directly)
+                        # A more robust check might be needed depending on table structure
+                        pr_df.columns = pr_df.iloc[0]
+                        pr_df = pr_df[1:].reset_index(drop=True)
+    
+                    # Add new columns if they don't exist (adjust column names as needed)
+                    # new_cols_to_add = ['Common Forms', 'Unscheduled', 'Is Form Dynamic?', 'Form Dynamic Criteria', 'Additional Programming Instructions']
+                    # for col in new_cols_to_add:
+                    #     if col not in pr_df.columns:
+                    #         pr_df[col] = ''
+    
+                    # Drop columns that are entirely NaN after processing
+                    pr_df = pr_df.dropna(axis=1, how='all')
+    
+                    return pr_df
+    
+                else:
+                    st.warning("No tables found or extracted successfully from the Protocol REF PDF using pdfplumber.")
+                    return pd.DataFrame()
+    
+        except Exception as e:
+            st.error(f"Error processing Protocol REF PDF with pdfplumber: {e}")
+            return pd.DataFrame()
 
 
 # System and User Prompts for OpenAI (CRF Extraction)

@@ -370,71 +370,67 @@ def extract_relevant_pages(pdf_path:str):
         st.write(f"No tables Found")
 
 def process_protocol_pdf_pdfplumber(pdf_path: str,system_prompt_pr: str) -> pd.DataFrame:
-    
     """
     Processes the Protocol REF PDF to extract tables using pdfplumber and cleans data with API.
-
     """
     pdf_document = fitz.open(pdf_path)
 
-    page_texts = []
-    for page_num in range(pdf_document.page_count):
-        page = pdf_document.load_page(page_num)
-        page_text = page.get_text()
-        page_texts.append(page_text)
-
-    schedule_start_page = None
-    intro_start_page = None
-
+    with pdfplumber.open(path_pdf) as pdf:
+      for i in range(len(pdf.pages)):
+        page = pdf.pages[i]
+        text=page.extract_text()
+        # print(text)
+        page_texts.append(text)
+    
+    
     # Regex to find the headings, looking for the exact phrases
-    schedule_pattern = re.compile(r"schedule of activities", re.IGNORECASE)
+    schedule_pattern = re.compile(r"schedule of activities|Schedule of activities", re.IGNORECASE)
     intro_pattern = re.compile(r"introduction", re.IGNORECASE)
-
+    
     # Start searching from page 2 (index 1) to skip initial sections
     start_search_index = 1
-
+    
+    schedule_start_page = None
+    intro_start_page = None
+    
     for i in range(start_search_index, len(page_texts)):
         text = page_texts[i]
-        if schedule_start_page is None and schedule_pattern.search(text):
-            schedule_start_page = i + 1
-        if intro_start_page is None and intro_pattern.search(text):
-            intro_start_page = i + 1
-
+        if schedule_start_page is None and if schedule_pattern.search(text):
+              schedule_start_page = i + 1
+        if intro_start_page is None and if intro_pattern.search(text):
+              intro_start_page = i + 1
+    
     # Determine the range of pages for the Schedule of Activities section
     start_page = schedule_start_page
-    # If 'Introduction' is found after 'Schedule of Activities', use it as an end marker
-    # Otherwise, assume the schedule goes to the end of the document or until tables stop
-    end_page = intro_start_page if intro_start_page is not None and intro_start_page > start_page else pdf_document.page_count + 1
-
-
+    if end_page is not None:
+      end_page = len(pdf.pages)
+    
     output_pdf = fitz.open()
-
     extracted_pdf_path = None # Initialize extracted_pdf_path
-
-    if start_page is not None:
+    
+    if start_page and end_page:
         st.write(f"Found 'Schedule of Activities' starting on page: {start_page}")
-        st.write(f"Will extract pages from {start_page} up to page {end_page - 1} or until tables stop.")
-
+        st.write(f"Will extract pages from {start_page} up to page {end_page} or until tables stop.")
+    
         # Extract potential schedule pages into a temporary PDF
         temp_schedule_pdf = fitz.open()
-        for page_num in range(start_page - 1, end_page - 1):
-            if page_num < pdf_document.page_count: # Ensure page number is within bounds
-                temp_schedule_pdf.insert_pdf(pdf_document, from_page=page_num, to_page=page_num)
-
+    
+        temp_schedule_pdf.insert_pdf(pdf_document, from_page=start_page-1, to_page=end_page+1)
+    
         if temp_schedule_pdf.page_count > 0:
             extracted_pdf_path = "Schedule_of_Activities.pdf"
             temp_schedule_pdf.save(extracted_pdf_path)
             temp_schedule_pdf.close()
             st.write(f"Saved potential schedule section to {extracted_pdf_path}")
         else:
-            st.warning("Could not extract any pages for the Schedule of Activities section.")
+            st.warning("Could not extract any pages for the Schedule of Activities section based on the identified range.")
             pdf_document.close()
             return pd.DataFrame()
     else:
         st.warning("Could not find the 'Schedule of Activities' section heading.")
         pdf_document.close()
         return pd.DataFrame()
-
+    
     pdf_document.close()
     
   # Use Camelot to read tables from the extracted PDF
@@ -709,7 +705,7 @@ if st.button("Process Documents"):
         # Process Protocol REF using pdfplumber
         protocol_df = process_protocol_pdf_pdfplumber(protocol_filename,system_prompt_pr)
 
-        if protocol_df is not None:
+        if not protocol_df.empty:
             st.write("Extracted and Cleaned Table Data from Protocol REF:")
             try:
                 st.dataframe(protocol_df)

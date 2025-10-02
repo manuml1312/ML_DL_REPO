@@ -395,7 +395,7 @@ Return ONLY the cleaned JSON object, no explanations."""
                 # Update progress bar
                 progress_percentage = (i + 1) / len(pdf.pages)
                 my_bar.progress(progress_percentage, text=f"Extracting tables from Protocol REF PDF (page {i+1}/{len(pdf.pages)})...")
-
+                break
             my_bar.empty() # Clear progress bar on completion
 
             if all_extracted_data:

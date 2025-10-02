@@ -9,6 +9,7 @@ import pdfplumber
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import threading
 from queue import Queue
+import re
 
 # API setup
 api_key = st.secrets["api_key"]

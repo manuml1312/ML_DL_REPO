@@ -270,9 +270,61 @@ def process_crf_docx(docx_path: str) -> List[Dict[str, Any]]:
 
 # Function to process the Protocol REF PDF and extract table data using pdfplumber
 def process_protocol_pdf_pdfplumber(pdf_path: str) -> pd.DataFrame:
+    
     """
     Processes the Protocol REF PDF to extract tables using pdfplumber and cleans data with API.
+
     """
+    """
+    Processes the Protocol REF PDF to extract the Schedule of Activities table.
+    """
+    pdf_document = fitz.open(pdf_path)
+
+    page_texts = []
+    for page_num in range(pdf_document.page_count):
+        page = pdf_document.load_page(page_num)
+        page_text = page.get_text()
+        page_texts.append(page_text)
+
+    schedule_start_page = None
+    intro_start_page = None
+
+    # Regex to find the headings, looking for the exact phrases
+    schedule_pattern = re.compile(r"schedule of activities", re.IGNORECASE)
+    intro_pattern = re.compile(r"introduction", re.IGNORECASE)
+
+    # Start searching from page 2 (index 1) to skip initial sections
+    start_search_index = 1
+
+    for i in range(start_search_index, len(page_texts)):
+        text = page_texts[i]
+        if schedule_start_page is None and schedule_pattern.search(text):
+            schedule_start_page = i + 1
+        if intro_start_page is None and intro_pattern.search(text):
+            intro_start_page = i + 1
+
+    start_page = schedule_start_page
+    end_page = intro_start_page
+
+    output_pdf = fitz.open()
+
+    if start_page is not None and end_page is not None:
+        st.write(f"Found 'Schedule of Activities' starting on page: {start_page}")
+        st.write(f"Found 'Introduction' starting on page: {end_page}")
+        st.write(f"Extracting pages {start_page} to {end_page - 1} for Schedule of Activities.")
+
+        # Extract pages from start_page up to (but not including) end_page
+        for page_num in range(start_page - 1, end_page - 1):
+            output_pdf.insert_pdf(pdf_document, from_page=page_num, to_page=page_num)
+
+        extracted_pdf_path = "Schedule_of_Activities.pdf"
+        output_pdf.save(extracted_pdf_path)
+        output_pdf.close()
+        pdf_document.close()
+
+        st.write(f"Saved extracted section to {extracted_pdf_path}")
+
+        # Use Camelot to read tables from the extracted PDF
     system_prompt_pr = """You are a clinical trial data structuring specialist. Clean and restructure the provided Schedule of Activities table JSON.
 
 INPUT: A messy JSON where:
@@ -346,7 +398,7 @@ Return ONLY the cleaned JSON object, no explanations."""
 
 
     try:
-        with pdfplumber.open(pdf_path) as pdf:
+        with pdfplumber.open(extracted_pdf_path) as pdf:
             st.write(f"Opened PDF with {len(pdf.pages)} pages for table extraction.")
 
             progress_text = "Extracting tables from Protocol REF PDF..."

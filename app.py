@@ -319,20 +319,18 @@ CRITICAL: When splitting merged visits, ensure that:
 Return ONLY the cleaned JSON object, no explanations."""
 
 
-def process_protocol_pdf_pdfplumber(pdf_path: str,system_prompt_pr: str) -> pd.DataFrame:
+def process_protocol_pdf_pdfplumber(pdf_path: str,pdf_file,system_prompt_pr: str) -> pd.DataFrame:
     """
     Processes the Protocol REF PDF to extract tables using pdfplumber and cleans data with API.
     """
     pdf_document = fitz.open(pdf_path)
 
-    with pdfplumber.open(path_pdf) as pdf:
+    with pdfplumber.open(pdf_file) as pdf:
       for i in range(len(pdf.pages)):
         page = pdf.pages[i]
         text=page.extract_text()
         page_texts.append(text)
           
-        
-    
     # Regex to find the headings, looking for the exact phrases
     schedule_pattern = re.compile(r"schedule of activities|Schedule of activities", re.IGNORECASE)
     intro_pattern = re.compile(r"introduction", re.IGNORECASE)
@@ -612,7 +610,7 @@ option = st.selectbox(
 
 # Process Button
 if st.button("Process Documents"):
-    if uploaded_crf_file is not None and uploaded_protocol_file is not None:
+    if uploaded_crf_file is not None or uploaded_protocol_file is not None:
         st.info("Processing documents...")
 
         # Save uploaded files temporarily
@@ -655,7 +653,7 @@ if st.button("Process Documents"):
 
         st.subheader("Protocol REF Processing Results (Table Extraction)")
         # Process Protocol REF using pdfplumber
-        protocol_df = process_protocol_pdf_pdfplumber(protocol_filename,system_prompt_pr)
+        protocol_df = process_protocol_pdf_pdfplumber(protocol_filename,uploaded_protocol_file,system_prompt_pr)
 
         if not protocol_df.empty:
             st.write("Extracted and Cleaned Table Data from Protocol REF:")

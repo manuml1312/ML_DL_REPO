@@ -721,8 +721,8 @@ if st.button("Process Documents"):
                 dup=protocol_df.copy()
                 dup.columns = [f"{c}_{i}" for i, c in enumerate(dup.columns)]
                 st.dataframe(dup)
-        else:
-            st.write("Output Not Available")
+        # else:
+        #     st.write("Output Not Available")
 
 
             # Provide download link for Protocol data

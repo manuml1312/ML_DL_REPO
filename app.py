@@ -192,6 +192,26 @@ class DOCXCRFChunker:
         chunks = self._add_overlap(chunks)
 
         return chunks
+    #combine chunks to reduce requests
+    def combine_chunks(chunks):
+        i,j=0,0
+        updated_chunks=['0']
+        length=len(chunks)
+        while i+1 in range(len(chunks)):
+          if i==0:
+            updated_chunks[j]=str(chunks[i])
+          else:
+            count_len=len(updated_chunks[j].split()+str(chunks[i]).split()) * 1.25
+            print(count_len)
+            if count_len <3500:
+              updated_chunks[j]= updated_chunks[j]+'\n\nNext Chunk \n\n'+str(chunks[i])
+            else:
+              j+=1
+              updated_chunks.append('0')
+              updated_chunks[j]=str(chunks[i])
+        
+          i+=1
+      return updated_chunks
 
     def _create_new_chunk(self, chunk_id: int) -> Dict[str, Any]:
         """Create a new empty chunk"""
@@ -258,6 +278,7 @@ def process_crf_docx(docx_path: str) -> List[Dict[str, Any]]:
 
     chunker = DOCXCRFChunker(max_chunk_size=15000, overlap_size=500)
     chunks = chunker.extract_and_chunk(docx_path)
+    chunks = combine_chunks(chunks)
 
     # Print summary (optional, can be displayed in Streamlit)
     summary = chunker.get_chunk_summary(chunks)

@@ -318,11 +318,7 @@ CRITICAL: When splitting merged visits, ensure that:
 
 Return ONLY the cleaned JSON object, no explanations."""
 
-
-def process_protocol_pdf_pdfplumber(pdf_path: str,pdf_file,system_prompt_pr: str) -> pd.DataFrame:
-    """
-    Processes the Protocol REF PDF to extract tables using pdfplumber and cleans data with API.
-    """
+def extract_table_pages(pdf_path,pdf_file):
     pdf_document = fitz.open(pdf_path)
     page_texts=[]
     
@@ -355,12 +351,11 @@ def process_protocol_pdf_pdfplumber(pdf_path: str,pdf_file,system_prompt_pr: str
     st.write('ENd page:',end_page)
     # Determine the range of pages for the Schedule of Activities section
     start_page = schedule_start_page
-    if intro_start_page is None:
-      end_page = len(pdf.pages)
-    else:
-      end_page = intro_start_page
+    # if intro_start_page is None:
+    #   end_page = len(pdf.pages)
+    # else:
+    #   end_page = intro_start_page
         
-    
     output_pdf = fitz.open()
     extracted_pdf_path = None # Initialize extracted_pdf_path
     
@@ -388,6 +383,11 @@ def process_protocol_pdf_pdfplumber(pdf_path: str,pdf_file,system_prompt_pr: str
         return pd.DataFrame()
     
     pdf_document.close()
+
+def process_protocol_pdf_pdfplumber(extracted_pdf_path: str,pdf_file,system_prompt_pr: str) -> pd.DataFrame:
+    """
+    Processes the Protocol REF PDF to extract tables using pdfplumber and cleans data with API.
+    """
     
   # Use Camelot to read tables from the extracted PDF
     all_extracted_data = []
@@ -659,7 +659,11 @@ if st.button("Process Documents"):
 
         st.subheader("Protocol REF Processing Results (Table Extraction)")
         # Process Protocol REF using pdfplumber
-        protocol_df = process_protocol_pdf_pdfplumber(protocol_filename,uploaded_protocol_file,system_prompt_pr)
+        if options=="Document with other Content":
+            extracted_pdf = extract_table_pages(protocol_filename,uploaded_protocol_file)
+            protocol_df = process_protocol_pdf_pdfplumber(extracted_pdf,uploaded_protocol_file,system_prompt_pr)
+        else:
+            protocol_df = process_protocol_pdf_pdfplumber(protocol_filename,uploaded_protocol_file,system_prompt_pr)
 
         if not protocol_df.empty:
             st.write("Extracted and Cleaned Table Data from Protocol REF:")

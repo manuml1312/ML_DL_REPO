@@ -352,6 +352,8 @@ CRITICAL: When splitting merged visits, ensure that:
 - The total number of columns increases to accommodate all individual visits
 
 Return ONLY the cleaned JSON object, no explanations."""
+
+
 def extract_table_pages(pdf_path, pdf_file):
     """Extract pages containing Schedule of Activities tables"""
     pdf_document = fitz.open(pdf_path)
@@ -366,13 +368,19 @@ def extract_table_pages(pdf_path, pdf_file):
     
     # Patterns to find headings
     schedule_pattern = re.compile(r"schedule of activities", re.IGNORECASE)
+    intro_pattern = re.compile(r"Introduction",re.IGNORECASE)
     
     # Find start page
     schedule_start_page = None
+    intro_start_page = None
+    
     for i in range(1, len(page_texts)):  # Start from page 2 (index 1)
         text = page_texts[i]
         if schedule_pattern.search(text):
             schedule_start_page = i + 1  # 1-indexed
+        if intro_pattern.search(text):
+            intro_start_page = i+1
+        if schedule_start_page and intro_start_page:
             break
     
     if not schedule_start_page:
@@ -398,6 +406,8 @@ def extract_table_pages(pdf_path, pdf_file):
         for i in range(schedule_start_page - 1, len(pdf.pages)):  # 0-indexed
             page = pdf.pages[i]
             tables_on_page = page.extract_tables(table_settings=table_settings)
+            if i==intro_start_page:
+                break
             
             if tables_on_page and any(len(table) > 2 for table in tables_on_page):
                 # Found tables with substance (more than just headers)
@@ -405,7 +415,7 @@ def extract_table_pages(pdf_path, pdf_file):
                 consecutive_empty_pages = 0
             else:
                 consecutive_empty_pages += 1
-                if consecutive_empty_pages >= max_empty_pages:
+                if consecutive_empty_pages >= max_empty_pages or not intro_start_page:
                     break
     
     st.write(f"Tables detected from page {schedule_start_page} to page {end_page}")

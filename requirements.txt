@@ -3,3 +3,4 @@ camelot-py[base]
 PyMuPDF
 python-docx
 openai
+pdfplumber

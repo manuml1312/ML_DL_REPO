@@ -339,9 +339,9 @@ def extract_relevant_pages(pdf_path:str):
 
     for i in range(start_search_index, len(page_texts)):
         text = page_texts[i]
-        if schedule_start_page is None and schedule_pattern.search(text):
+        if schedule_start_page is None and if schedule_pattern.search(text):
             schedule_start_page = i + 1
-        if intro_start_page is None and intro_pattern.search(text):
+        if intro_start_page is None and if intro_pattern.search(text):
             intro_start_page = i + 1
 
     start_page = schedule_start_page

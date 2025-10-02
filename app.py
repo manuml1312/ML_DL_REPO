@@ -381,7 +381,9 @@ def extract_table_pages(pdf_path, pdf_file):
         if intro_pattern.search(text):
             intro_start_page = i+1
         if schedule_start_page and intro_start_page:
+            st.write("Start:",schedule_start_page,"\n End:",intro_start_page)
             break
+        
     
     if not schedule_start_page:
         pdf_document.close()
@@ -408,8 +410,7 @@ def extract_table_pages(pdf_path, pdf_file):
             tables_on_page = page.extract_tables(table_settings=table_settings)
             if i==intro_start_page:
                 break
-            
-            if tables_on_page and any(len(table) > 2 for table in tables_on_page):
+            elif tables_on_page and any(len(table) > 2 for table in tables_on_page):
                 # Found tables with substance (more than just headers)
                 end_page = i + 1  # 1-indexed
                 consecutive_empty_pages = 0

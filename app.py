@@ -377,7 +377,7 @@ Return ONLY the cleaned JSON object, no explanations."""
 
                         try:
                             response = client.chat.completions.create(
-                                model="gpt-4o-mini",
+                                model="o4-mini",
                                 messages=messages_new,
                                 response_format={"type": "json_object"}
                             )
@@ -411,10 +411,10 @@ Return ONLY the cleaned JSON object, no explanations."""
                     pr_df = pr_df[1:].reset_index(drop=True)
 
                 # Add new columns if they don't exist (adjust column names as needed)
-                new_cols_to_add = ['Common Forms', 'Unscheduled', 'Is Form Dynamic?', 'Form Dynamic Criteria', 'Additional Programming Instructions']
-                for col in new_cols_to_add:
-                    if col not in pr_df.columns:
-                        pr_df[col] = ''
+                # new_cols_to_add = ['Common Forms', 'Unscheduled', 'Is Form Dynamic?', 'Form Dynamic Criteria', 'Additional Programming Instructions']
+                # for col in new_cols_to_add:
+                #     if col not in pr_df.columns:
+                #         pr_df[col] = ''
 
                 # Drop columns that are entirely NaN after processing
                 pr_df = pr_df.dropna(axis=1, how='all')
@@ -515,7 +515,7 @@ def ai_extract(chunks, System_prompt):
 
         try:
             response = client.chat.completions.create(
-                model="gpt-4o-mini",  # Using gpt-4o-mini as it's generally available and cost-effective
+                model="o4-mini",  # Using gpt-4o-mini as it's generally available and cost-effective
                 messages=messages,
                 response_format={"type": "json_object"}
             )
@@ -605,20 +605,21 @@ if st.button("Process Documents"):
             try:
                 st.dataframe(protocol_df)
             except Exception as e:
-                protocol_df.columns = [f"{c}_{i}" for i, c in enumerate(protocol_df.columns)]
-                st.dataframe(protocol_df)
+                dup=protocol_df.copy()
+                dup.columns = [f"{c}_{i}" for i, c in enumerate(dup.columns)]
+                st.dataframe(dup)
 
 
             # Provide download link for Protocol data
             @st.cache_data
             def convert_df_to_excel(df):
-                return df.to_excel(index=False, engine='openpyxl')
+                return df.to_csv(index=False)
 
-            protocol_excel_data = convert_df_to_excel(protocol_df)
+            protocol_excel_data = convert_df_to_excel(protocol_df.replace(None,''))
             st.download_button(
                 label="Download Protocol REF Table Data as Excel",
                 data=protocol_excel_data,
-                file_name='protocol_ref_table_data.xlsx',
+                file_name='protocol_ref_table_data.csv',
                 mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
             )
         else:

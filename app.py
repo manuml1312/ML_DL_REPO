@@ -404,25 +404,27 @@ def extract_table_pages(pdf_path,pdf_file):
         temp_schedule_pdf.insert_pdf(pdf_document, from_page=start_page-1, to_page=end_page+1)
     
         if temp_schedule_pdf.page_count > 0:
-            extracted_pdf_path = "Schedule_of_Activities.pdf"
-            temp_schedule_pdf.save(extracted_pdf_path)
             temp_schedule_pdf.close()
-            st.write(f"Saved potential schedule section to {extracted_pdf_path}")
-        else:
-            st.warning("Could not extract any pages for the Schedule of Activities section based on the identified range.")
             pdf_document.close()
-            return pd.DataFrame()
-    else:
-        st.warning("Could not find the 'Schedule of Activities' section heading.")
-        pdf_document.close()
-        return pd.DataFrame()
+            return temp_schedule_pdf
+        else:
+            st.write("Could not find the required section: Schedule of Activities")
     
-    # pdf_document.close()
 
-def process_protocol_pdf_pdfplumber(extracted_pdf_path: str,pdf_file,system_prompt_pr: str) -> pd.DataFrame:
+def process_protocol_pdf_pdfplumber(pdf_file,system_prompt_pr) -> pd.DataFrame:
     """
     Processes the Protocol REF PDF to extract tables using pdfplumber and cleans data with API.
     """
+    if pdf_file:
+        temp_schedule_pdf = fitz.open()
+        extracted_pdf_path = "Schedule_of_Activities.pdf"
+        temp_schedule_pdf.save(extracted_pdf_path)
+        # temp_schedule_pdf.close()
+        
+        st.write(f"Saved potential schedule section to {extracted_pdf_path}")
+    else:
+        st.warning("Could not extract any pages for the Schedule of Activities section based on the identified range.")
+
     
   # Use Camelot to read tables from the extracted PDF
     all_extracted_data = []

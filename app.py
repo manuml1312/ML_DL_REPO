@@ -664,7 +664,7 @@ if st.button("Process Documents"):
         # Process Protocol REF using pdfplumber
         if option=="Document with other Content":
             extracted_pdf = extract_table_pages(protocol_filename,uploaded_protocol_file)
-            protocol_df = process_protocol_pdf_pdfplumber(extracted_pdf,uploaded_protocol_file,system_prompt_pr)
+            protocol_df = process_protocol_pdf_pdfplumber(extracted_pdf,system_prompt_pr)
         else:
             protocol_df = process_protocol_pdf_pdfplumber(protocol_filename,uploaded_protocol_file,system_prompt_pr)
 

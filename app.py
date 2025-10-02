@@ -650,7 +650,7 @@ if st.button("Process Documents"):
         # Process Protocol REF using pdfplumber
         protocol_df = process_protocol_pdf_pdfplumber(protocol_filename)
 
-        if not protocol_df.empty:
+        if protocol_df is not None:
             st.write("Extracted and Cleaned Table Data from Protocol REF:")
             try:
                 st.dataframe(protocol_df)

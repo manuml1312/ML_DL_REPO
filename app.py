@@ -411,10 +411,11 @@ def extract_table_pages(pdf_path,pdf_file):
             st.write("Could not find the required section: Schedule of Activities")
     
 
-def process_protocol_pdf_pdfplumber(pdf_file,system_prompt_pr) -> pd.DataFrame:
+def process_protocol_pdf_pdfplumber(pdf,system_prompt_pr) -> pd.DataFrame:
     """
     Processes the Protocol REF PDF to extract tables using pdfplumber and cleans data with API.
     """
+    pdf_file = fitz.open(pdf)
     if pdf_file:
         temp_schedule_pdf = fitz.open()
         extracted_pdf_path = "Schedule_of_Activities.pdf"

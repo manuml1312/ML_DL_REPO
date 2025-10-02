@@ -409,6 +409,7 @@ def extract_table_pages(pdf_path, pdf_file):
             page = pdf.pages[i]
             tables_on_page = page.extract_tables(table_settings=table_settings)
             if i==intro_start_page:
+                end_page=intro_start_page
                 break
             elif tables_on_page and any(len(table) > 2 for table in tables_on_page):
                 # Found tables with substance (more than just headers)

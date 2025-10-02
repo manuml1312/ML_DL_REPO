@@ -16,7 +16,7 @@ client = OpenAI(api_key=api_key)
 
 
 class DOCXCRFChunker:
-def __init__(self, total_items, description):
+    def __init__(self, total_items, description):
         self.lock = threading.Lock()
         self.completed = 0
         self.total = total_items

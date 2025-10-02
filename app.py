@@ -211,7 +211,7 @@ class DOCXCRFChunker:
               updated_chunks[j]=str(chunks[i])
         
           i+=1
-      return updated_chunks
+        return updated_chunks
 
     def _create_new_chunk(self, chunk_id: int) -> Dict[str, Any]:
         """Create a new empty chunk"""

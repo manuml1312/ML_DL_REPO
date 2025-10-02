@@ -602,7 +602,10 @@ if st.button("Process Documents"):
 
         if not protocol_df.empty:
             st.write("Extracted and Cleaned Table Data from Protocol REF:")
-            st.dataframe(protocol_df)
+            try:
+                st.dataframe(protocol_df)
+            except Exception as e:
+                st.write(protocol_df)
 
             # Provide download link for Protocol data
             @st.cache_data

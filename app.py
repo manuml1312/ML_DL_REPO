@@ -323,6 +323,7 @@ def process_protocol_pdf_pdfplumber(pdf_path: str,system_prompt_pr: str) -> pd.D
     """
     Processes the Protocol REF PDF to extract tables using pdfplumber and cleans data with API.
     """
+    pdf_document = fitz.open(pdf_path)
 
     with pdfplumber.open(path_pdf) as pdf:
       for i in range(len(pdf.pages)):
@@ -330,7 +331,7 @@ def process_protocol_pdf_pdfplumber(pdf_path: str,system_prompt_pr: str) -> pd.D
         text=page.extract_text()
         page_texts.append(text)
           
-    pdf_document = fitz.open(pdf_path)    
+        
     
     # Regex to find the headings, looking for the exact phrases
     schedule_pattern = re.compile(r"schedule of activities|Schedule of activities", re.IGNORECASE)

@@ -724,7 +724,7 @@ if st.button("Process Documents"):
 
 
             # Provide download link for Protocol data
-            @st.cache_data
+            # @st.cache_data
             def convert_df_to_excel(df):
                 return df.to_csv(index=False)
 
@@ -758,7 +758,7 @@ if st.button("Process Documents"):
                 st.dataframe(crf_extraction_df)
 
                 # Provide download link for CRF data
-                @st.cache_data
+                # @st.cache_data
                 def convert_df_to_excel(df):
                     return df.to_csv(index=False)
 

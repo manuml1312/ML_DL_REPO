@@ -613,7 +613,7 @@ option = st.selectbox(
     "Select the one with respect to the Protocol Document",
     ("Document with other Content","Document with only Tables"),
 )
-st.write(options)
+st.write(option)
 # Process Button
 if st.button("Process Documents"):
     if uploaded_crf_file is not None or uploaded_protocol_file is not None:

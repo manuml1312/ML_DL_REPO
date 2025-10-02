@@ -318,56 +318,57 @@ CRITICAL: When splitting merged visits, ensure that:
 - The total number of columns increases to accommodate all individual visits
 
 Return ONLY the cleaned JSON object, no explanations."""
-def extract_relevant_pages(pdf_path:str):
-    pdf_document = fitz.open(pdf_path)
+# def extract_relevant_pages(pdf_path:str):
+#     pdf_document = fitz.open(pdf_path)
 
-    page_texts = []
-    for page_num in range(pdf_document.page_count):
-        page = pdf_document.load_page(page_num)
-        page_text = page.get_text()
-        page_texts.append(page_text)
+#     page_texts = []
+#     for page_num in range(pdf_document.page_count):
+#         page = pdf_document.load_page(page_num)
+#         page_text = page.get_text()
+#         page_texts.append(page_text)
 
-    schedule_start_page = None
-    intro_start_page = None
+#     schedule_start_page = None
+#     intro_start_page = None
 
-    # Regex to find the headings, looking for the exact phrases
-    schedule_pattern = re.compile(r"schedule of activities", re.IGNORECASE)
-    intro_pattern = re.compile(r"introduction", re.IGNORECASE)
+#     # Regex to find the headings, looking for the exact phrases
+#     schedule_pattern = re.compile(r"schedule of activities", re.IGNORECASE)
+#     intro_pattern = re.compile(r"introduction", re.IGNORECASE)
 
-    # Start searching from page 2 (index 1) to skip initial sections
-    start_search_index = 1
+#     # Start searching from page 2 (index 1) to skip initial sections
+#     start_search_index = 1
 
-    for i in range(start_search_index, len(page_texts)):
-        text = page_texts[i]
-        if schedule_start_page is None and if schedule_pattern.search(text):
-            schedule_start_page = i + 1
-        if intro_start_page is None and if intro_pattern.search(text):
-            intro_start_page = i + 1
+#     for i in range(start_search_index, len(page_texts)):
+#         text = page_texts[i]
+#         if schedule_start_page is None:
+#             if schedule_pattern.search(text):
+#                 schedule_start_page = i + 1
+#         if intro_start_page is None and if intro_pattern.search(text):
+#             intro_start_page = i + 1
 
-    start_page = schedule_start_page
-    end_page = intro_start_page
+#     start_page = schedule_start_page
+#     end_page = intro_start_page
 
-    output_pdf = fitz.open()
+#     output_pdf = fitz.open()
 
-    if start_page is not None and end_page is not None:
-        st.write(f"Found 'Schedule of Activities' starting on page: {start_page}")
-        st.write(f"Found 'Introduction' starting on page: {end_page}")
-        st.write(f"Extracting pages {start_page} to {end_page - 1} for Schedule of Activities.")
+#     if start_page is not None and end_page is not None:
+#         st.write(f"Found 'Schedule of Activities' starting on page: {start_page}")
+#         st.write(f"Found 'Introduction' starting on page: {end_page}")
+#         st.write(f"Extracting pages {start_page} to {end_page - 1} for Schedule of Activities.")
 
-        # Extract pages from start_page up to (but not including) end_page
-        for page_num in range(start_page - 1, end_page - 1):
-            output_pdf.insert_pdf(pdf_document, from_page=page_num, to_page=page_num)
+#         # Extract pages from start_page up to (but not including) end_page
+#         for page_num in range(start_page - 1, end_page - 1):
+#             output_pdf.insert_pdf(pdf_document, from_page=page_num, to_page=page_num)
 
-        extracted_pdf_path = "Schedule_of_Activities.pdf"
-        output_pdf.save(extracted_pdf_path)
-        output_pdf.close()
-        pdf_document.close()
+#         extracted_pdf_path = "Schedule_of_Activities.pdf"
+#         output_pdf.save(extracted_pdf_path)
+#         output_pdf.close()
+#         pdf_document.close()
 
-        st.write(f"Saved extracted section to {extracted_pdf_path}")
-        return extracted_pdf_path
-    else:
-        return('0')
-        st.write(f"No tables Found")
+#         st.write(f"Saved extracted section to {extracted_pdf_path}")
+#         return extracted_pdf_path
+#     else:
+#         return('0')
+#         st.write(f"No tables Found")
 
 def process_protocol_pdf_pdfplumber(pdf_path: str,system_prompt_pr: str) -> pd.DataFrame:
     """

@@ -325,6 +325,7 @@ def process_protocol_pdf_pdfplumber(pdf_path: str,pdf_file,system_prompt_pr: str
     """
     pdf_document = fitz.open(pdf_path)
     page_texts=[]
+    
     with pdfplumber.open(pdf_file) as pdf:
       for i in range(len(pdf.pages)):
         page = pdf.pages[i]
@@ -340,7 +341,7 @@ def process_protocol_pdf_pdfplumber(pdf_path: str,pdf_file,system_prompt_pr: str
     
     schedule_start_page = None
     intro_start_page = None
-    
+    end_page=None
     for i in range(start_search_index, len(page_texts)):
         text = page_texts[i]
         if schedule_start_page is None:
@@ -353,7 +354,8 @@ def process_protocol_pdf_pdfplumber(pdf_path: str,pdf_file,system_prompt_pr: str
     # Determine the range of pages for the Schedule of Activities section
     start_page = schedule_start_page
     if intro_start_page is None:
-      intro_start_page = len(pdf.pages)
+      end_page = len(pdf.pages)
+    else:
       end_page = intro_start_page
         
     

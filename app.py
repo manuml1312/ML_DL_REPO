@@ -367,7 +367,7 @@ def extract_table_pages(pdf_path, pdf_file):
             page_texts.append(text)
     
     # Patterns to find headings
-    schedule_pattern = re.compile(r"schedule of activities|Schedule of activities", re.IGNORECASE)
+    schedule_pattern = re.compile(r"schedule of activities|Schedule of activities|Schedule of Activities", re.IGNORECASE)
     intro_pattern = re.compile(r"Introduction",re.IGNORECASE)
     
     # Find start page
@@ -375,7 +375,8 @@ def extract_table_pages(pdf_path, pdf_file):
     intro_start_page = None
     
     for i in range(1, len(page_texts)):  # Start from page 2 (index 1)
-        text = page_texts[i].lower()
+        text = page_texts[i]
+        st.write(text[0:10])
         if schedule_pattern.search(text):
             schedule_start_page = i + 1  # 1-indexed
         if intro_pattern.search(text):

@@ -716,12 +716,15 @@ if st.button("Process Documents", type="primary"):
         # Step 1: Extract table pages
         with st.spinner("Identifying Schedule of Activities pages..."):
             # Pass both the path AND the file object to extract_table_pages
-            extracted_pdf_path = extract_table_pages(protocol_path, protocol_path)
+            if option=='Document with other Content':
+                extracted_pdf_path = extract_table_pages(protocol_path, protocol_path)
+            else:
+                extracted_pdf_path = protocol_path
         
         if extracted_pdf_path:
             # Step 2: Process the extracted tables
             protocol_progress = st.empty()
-            protocol_df = process_protocol_parallel(
+            protocol_df = process_protocol_pdf_pdfplumber(
                 extracted_pdf_path, 
                 system_prompt_pr
             )
@@ -754,7 +757,7 @@ if st.button("Process Documents", type="primary"):
             st.info(f"Created {len(crf_chunks)} chunks")
         
         crf_progress = st.empty()
-        crf_df, crf_errors = process_crf_parallel(crf_chunks, crf_progress)
+        crf_df, crf_errors = process_crf_docx(crf_chunks, crf_progress)
         crf_progress.empty()
         
         if not crf_df.empty:

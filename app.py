@@ -687,8 +687,8 @@ st.write("Upload your Mock CRF (.docx) and Protocol REF (.pdf) documents to extr
 uploaded_crf_file = st.file_uploader("Upload Mock CRF (.docx)", type="docx")
 uploaded_protocol_file = st.file_uploader("Upload Protocol REF (.pdf)", type="pdf")
 
-st.info("Document with other Content: Used to extract tables from a document combined with other text and tables",
-        "Document with only Tables: Use when there are only tables in the document and no other pages.")
+st.info("Document with other Content: Used to extract tables from a document combined with other text and tables.")
+st.info("Document with only Tables: Use when there are only tables in the document and no other pages.")
 
 option = st.selectbox(
     "Select the one with respect to the Protocol Document",

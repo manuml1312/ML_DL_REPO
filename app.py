@@ -404,7 +404,7 @@ Return ONLY the cleaned JSON object, no explanations."""
             progress_text = "Extracting tables from Protocol REF PDF..."
             my_bar = st.progress(0, text=progress_text)
 
-            for i in range(2):
+            for i in range(len(pdf.pages)):
                 page = pdf.pages[i]
                 st.write(f"Processing page {i+1}...")
 
@@ -635,7 +635,7 @@ if st.button("Process Documents"):
                 # Provide download link for CRF data
                 @st.cache_data
                 def convert_df_to_excel(df):
-                    return df.csv(index=False, engine='openpyxl')
+                    return df.to_csv(index=False)
 
                 crf_excel_data = convert_df_to_excel(crf_extraction_df)
                 st.download_button(

@@ -710,7 +710,7 @@ if st.button("Process Documents"):
                 protocol_df = process_protocol_pdf_pdfplumber(extracted_pdf,system_prompt_pr)
                 st.write(protocol_df)
         else:
-            protocol_df = process_protocol_pdf_pdfplumber(protocol_filename,system_prompt_pr)
+            protocol_df = process_protocol_pdf_pdfplumber(uploaded_protocol_file,system_prompt_pr)
             st.write(protocol_df)
 
         if protocol_df:
@@ -773,12 +773,13 @@ if st.button("Process Documents"):
              st.warning("No chunks generated from the Mock CRF.")
 
         # Clean up temporary files
-        if os.path.exists(crf_filename):
-            os.remove(crf_filename)
-        if os.path.exists(protocol_filename):
-             os.remove(protocol_filename)
-        if os.path.exists("Schedule_of_Activities.pdf"):
-             os.remove("Schedule_of_Activities.pdf")
+        if st.button('Clear Files History'):
+            if os.path.exists(crf_filename):
+                os.remove(crf_filename)
+            if os.path.exists(protocol_filename):
+                 os.remove(protocol_filename)
+            if os.path.exists("Schedule_of_Activities.pdf"):
+                 os.remove("Schedule_of_Activities.pdf")
 
         st.success("Processing complete.")
 

@@ -342,6 +342,7 @@ def process_protocol_pdf_pdfplumber(pdf_path: str,pdf_file,system_prompt_pr: str
     schedule_start_page = None
     intro_start_page = None
     end_page=None
+    
     for i in range(start_search_index, len(page_texts)):
         text = page_texts[i]
         if schedule_start_page is None:
@@ -350,7 +351,8 @@ def process_protocol_pdf_pdfplumber(pdf_path: str,pdf_file,system_prompt_pr: str
         if intro_start_page is None:
             if intro_pattern.search(text):
               intro_start_page = i + 1
-    
+    end_page = len(pdf.pages)
+    st.write('ENd page:',end_page)
     # Determine the range of pages for the Schedule of Activities section
     start_page = schedule_start_page
     if intro_start_page is None:

@@ -241,7 +241,7 @@ class DOCXCRFChunker:
                  'paragraph_count': chunks[i].get('paragraph_count', 0) + updated_chunks[j].get('paragraph_count', 0),
                  'table_count': chunks[i].get('table_count', 0) + updated_chunks[j].get('table_count', 0),
                  'crf_table_count': chunks[i].get('crf_table_count', 0) + updated_chunks[j].get('crf_table_count', 0),
-                 'has_overlap': chunks[i].get('has_overlap', False) +'\n\n' updated_chunks[j].get('has_overlap', False) # Indicate if either had overlap
+                 'has_overlap': chunks[i].get('has_overlap', False) +'\n\n'+ updated_chunks[j].get('has_overlap', False) # Indicate if either had overlap
               }
             else:
               j+=1

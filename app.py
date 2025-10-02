@@ -710,7 +710,7 @@ if st.button("Process Documents"):
                 protocol_df = process_protocol_pdf_pdfplumber(extracted_pdf,system_prompt_pr)
                 st.write(protocol_df)
         else:
-            protocol_df = process_protocol_pdf_pdfplumber(protocol_filename,system_prompt_pr)
+            protocol_df = process_protocol_pdf_pdfplumber(uploaded_protocol_file,system_prompt_pr)
             st.write(protocol_df)
 
         if protocol_df:
@@ -721,6 +721,8 @@ if st.button("Process Documents"):
                 dup=protocol_df.copy()
                 dup.columns = [f"{c}_{i}" for i, c in enumerate(dup.columns)]
                 st.dataframe(dup)
+        else:
+            st.write("Output Not Available")
 
 
             # Provide download link for Protocol data

@@ -382,7 +382,7 @@ def extract_table_pages(pdf_path,pdf_file):
         pdf_document.close()
         return pd.DataFrame()
     
-    pdf_document.close()
+    # pdf_document.close()
 
 def process_protocol_pdf_pdfplumber(extracted_pdf_path: str,pdf_file,system_prompt_pr: str) -> pd.DataFrame:
     """
@@ -613,7 +613,7 @@ option = st.selectbox(
     "Select the one with respect to the Protocol Document",
     ("Document with other Content","Document with only Tables"),
 )
-
+st.write(options)
 # Process Button
 if st.button("Process Documents"):
     if uploaded_crf_file is not None or uploaded_protocol_file is not None:

@@ -680,7 +680,7 @@ if st.button("Process Documents"):
             def convert_df_to_excel(df):
                 return df.to_csv(index=False)
 
-            protocol_excel_data = convert_df_to_excel(protocol_df.fillna('',inplace=True))
+            protocol_excel_data = convert_df_to_excel(protocol_df)
             st.download_button(
                 label="Download Protocol REF Table Data as Excel",
                 data=protocol_excel_data,

@@ -324,7 +324,7 @@ def process_protocol_pdf_pdfplumber(pdf_path: str,pdf_file,system_prompt_pr: str
     Processes the Protocol REF PDF to extract tables using pdfplumber and cleans data with API.
     """
     pdf_document = fitz.open(pdf_path)
-
+    page_texts=[]
     with pdfplumber.open(pdf_file) as pdf:
       for i in range(len(pdf.pages)):
         page = pdf.pages[i]

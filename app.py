@@ -659,7 +659,7 @@ if st.button("Process Documents"):
 
         st.subheader("Protocol REF Processing Results (Table Extraction)")
         # Process Protocol REF using pdfplumber
-        if options=="Document with other Content":
+        if option=="Document with other Content":
             extracted_pdf = extract_table_pages(protocol_filename,uploaded_protocol_file)
             protocol_df = process_protocol_pdf_pdfplumber(extracted_pdf,uploaded_protocol_file,system_prompt_pr)
         else:

@@ -399,17 +399,20 @@ def extract_table_pages(pdf_path, pdf_file):
         "snap_tolerance": 300,
         "edge_min_length": 100,
     }
-    
-    end_page = schedule_start_page
-    consecutive_empty_pages = 0
-    max_empty_pages = 2  # Stop if 2 consecutive pages have no tables
+
+    if intro_start_page:
+        end_page = intro_start_page
+    else:
+        end_page = schedule_start_page
+        consecutive_empty_pages = 0
+        max_empty_pages = 2  # Stop if 2 consecutive pages have no tables
     
     with pdfplumber.open(pdf_file) as pdf:
         for i in range(schedule_start_page - 1, len(pdf.pages)):  # 0-indexed
             page = pdf.pages[i]
             tables_on_page = page.extract_tables(table_settings=table_settings)
             if i==intro_start_page:
-                end_page=intro_start_page
+                # end_page=intro_start_page
                 break
             elif tables_on_page and any(len(table) > 2 for table in tables_on_page):
                 # Found tables with substance (more than just headers)
@@ -705,8 +708,10 @@ if st.button("Process Documents"):
             if extracted_pdf:
                 file=''
                 protocol_df = process_protocol_pdf_pdfplumber(extracted_pdf,system_prompt_pr)
+                st.write(protocol_df)
         else:
             protocol_df = process_protocol_pdf_pdfplumber(protocol_filename,system_prompt_pr)
+            st.write(protocol_df)
 
         if protocol_df:
             st.write("Extracted and Cleaned Table Data from Protocol REF:")

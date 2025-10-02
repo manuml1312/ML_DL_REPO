@@ -352,8 +352,10 @@ def process_protocol_pdf_pdfplumber(pdf_path: str,pdf_file,system_prompt_pr: str
     
     # Determine the range of pages for the Schedule of Activities section
     start_page = schedule_start_page
-    if end_page is not None:
-      end_page = len(pdf.pages)
+    if intro_start_page is None:
+      intro_start_page = len(pdf.pages)
+      end_page = intro_start_page
+        
     
     output_pdf = fitz.open()
     extracted_pdf_path = None # Initialize extracted_pdf_path

@@ -475,8 +475,11 @@ if st.button("🚀 Process Documents", type="primary"):
         # Display results
         with col_crf:
             if crf_result[0] is not None and not crf_result[0].empty:
+                df1 = crf_result[0]
+                df1.columns = [f"{c}_{i}" for i, c in enumerate(df1.columns)]
                 st.success(f"✅ Extracted {len(crf_result[0])} items")
-                st.dataframe(crf_result[0], use_container_width=True)
+                st.dataframe(df1, use_container_width=True)
+                crf_result[0]=crf_result[0].replace(None,'')
                 
                 st.download_button(
                     "📥 Download CRF Data",
@@ -490,9 +493,11 @@ if st.button("🚀 Process Documents", type="primary"):
         with col_protocol:
             st.subheader("📊 Protocol REF Processing")
             if protocol_result[0] is not None and not protocol_result[0].empty:
+                df2 = protocol_result[0]
+                df2.columns=[f"{c}_{i}" for i,c in enumerate(df2.columns)]
                 st.success(f"✅ Extracted {len(protocol_result[0])} rows")
                 st.dataframe(protocol_result[0], use_container_width=True)
-                
+                protocol_result[0]=protocol_result[0].replace(None,'')
                 st.download_button(
                     "📥 Download Protocol Data",
                     data=protocol_result[0].to_csv(index=False).encode('utf-8'),

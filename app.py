@@ -220,36 +220,6 @@ class DOCXCRFChunker:
 
         return chunk
 
-    def combine_chunks(chunks,max_tokens):
-        i,j=0,0
-        updated_chunks=['0']
-        length=len(chunks)
-        while i+1 in range(len(chunks)):
-          if i==0:
-            updated_chunks[j]=chunks[i].copy()
-          else:
-            count_len = updated_chunks[j]['length']+chunks[i]['length'] * 1.25
-            print(count_len)
-            if count_len <3500:
-              updated_chunks[j] = {
-                 'chunk_id': f"{chunks[i].get('chunk_id')}-{updated_chunks[j].get('chunk_id')}",
-                 'elements': chunks[i].get('elements', []) + updated_chunks[j].get('elements', []),
-                 'text': chunks[i].get('text', '') + "\n\n" + updated_chunks[j].get('text', ''),
-                 'length': chunks[i].get('length', 0) + updated_chunks[j].get('length', 0),
-                 'form_context': chunks[i].get('form_context', '')+'\n\n'+ updated_chunks[j].get('form_context', ''), 
-                 'has_tables': chunks[i].get('has_tables', False) + '\n\n'+ updated_chunks[j].get('has_tables', False),
-                 'paragraph_count': chunks[i].get('paragraph_count', 0) + updated_chunks[j].get('paragraph_count', 0),
-                 'table_count': chunks[i].get('table_count', 0) + updated_chunks[j].get('table_count', 0),
-                 'crf_table_count': chunks[i].get('crf_table_count', 0) + updated_chunks[j].get('crf_table_count', 0),
-                 'has_overlap': chunks[i].get('has_overlap', False) +'\n\n'+ updated_chunks[j].get('has_overlap', False) # Indicate if either had overlap
-              }
-            else:
-              j+=1
-              updated_chunks.append('0')
-              updated_chunks[j]=chunks[i].copy()
-        
-          i+=1
-        return updated_chunks
 
     def _add_overlap(self, chunks: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Add overlap between consecutive chunks"""
@@ -286,12 +256,43 @@ class DOCXCRFChunker:
 
     
 # Usage example
+
+def combine_chunks(chunks,max_tokens):
+    i,j=0,0
+    updated_chunks=['0']
+    length=len(chunks)
+    while i+1 in range(len(chunks)):
+      if i==0:
+        updated_chunks[j]=chunks[i].copy()
+      else:
+        count_len = updated_chunks[j]['length']+chunks[i]['length'] * 1.25
+        print(count_len)
+        if count_len <3500:
+          updated_chunks[j] = {
+             'chunk_id': f"{chunks[i].get('chunk_id')}-{updated_chunks[j].get('chunk_id')}",
+             'elements': chunks[i].get('elements', []) + updated_chunks[j].get('elements', []),
+             'text': chunks[i].get('text', '') + "\n\n" + updated_chunks[j].get('text', ''),
+             'length': chunks[i].get('length', 0) + updated_chunks[j].get('length', 0),
+             'form_context': chunks[i].get('form_context', '')+'\n\n'+ updated_chunks[j].get('form_context', ''), 
+             'has_tables': chunks[i].get('has_tables', False) + '\n\n'+ updated_chunks[j].get('has_tables', False),
+             'paragraph_count': chunks[i].get('paragraph_count', 0) + updated_chunks[j].get('paragraph_count', 0),
+             'table_count': chunks[i].get('table_count', 0) + updated_chunks[j].get('table_count', 0),
+             'crf_table_count': chunks[i].get('crf_table_count', 0) + updated_chunks[j].get('crf_table_count', 0),
+             'has_overlap': chunks[i].get('has_overlap', False) +'\n\n'+ updated_chunks[j].get('has_overlap', False) # Indicate if either had overlap
+          }
+        else:
+          j+=1
+          updated_chunks.append('0')
+          updated_chunks[j]=chunks[i].copy()
+    
+      i+=1
+    return updated_chunks
 def process_crf_docx(docx_path: str) -> List[Dict[str, Any]]:
     """Process a CRF DOCX file and return chunks"""
 
     chunker = DOCXCRFChunker(max_chunk_size=15000, overlap_size=500)
     chunks = chunker.extract_and_chunk(docx_path)
-    chunks = chunker.combine_chunks(chunks,1500)
+    chunks = combine_chunks(chunks,1500)
 
     # Print summary (optional, can be displayed in Streamlit)
     summary = chunker.get_chunk_summary(chunks)

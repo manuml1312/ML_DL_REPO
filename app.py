@@ -605,7 +605,9 @@ if st.button("Process Documents"):
             try:
                 st.dataframe(protocol_df)
             except Exception as e:
-                st.write(protocol_df)
+                protocol_df.columns = [f"{c}_{i}" for i, c in enumerate(protocol_df.columns)]
+                st.dataframe(protocol_df)
+
 
             # Provide download link for Protocol data
             @st.cache_data

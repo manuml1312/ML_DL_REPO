@@ -636,7 +636,7 @@ if st.button("Process Documents"):
 
         st.subheader("Protocol REF Processing Results (Table Extraction)")
         # Process Protocol REF using pdfplumber
-        protocol_df = process_protocol_pdf_pdfplumber(protocol_filename)
+        protocol_df = process_protocol_pdf_pdfplumber(protocol_filename,system_prompt_pr)
 
         if protocol_df is not None:
             st.write("Extracted and Cleaned Table Data from Protocol REF:")

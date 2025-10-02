@@ -277,7 +277,7 @@ def process_crf_docx(docx_path: str) -> List[Dict[str, Any]]:
 
     chunker = DOCXCRFChunker(max_chunk_size=15000, overlap_size=500)
     chunks = chunker.extract_and_chunk(docx_path)
-    chunks = combine_chunks(chunks,max_tokens)
+    chunks = combine_chunks(chunks,3000)
 
     # Print summary (optional, can be displayed in Streamlit)
     summary = chunker.get_chunk_summary(chunks)

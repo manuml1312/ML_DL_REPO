@@ -237,7 +237,7 @@ class DOCXCRFChunker:
                  'text': chunks[i].get('text', '') + "\n\n" + updated_chunks[j].get('text', ''),
                  'length': chunks[i].get('length', 0) + updated_chunks[j].get('length', 0),
                  'form_context': chunks[i].get('form_context', '')+'\n\n'+ updated_chunks[j].get('form_context', ''), 
-                 'has_tables': chunks[i].get('has_tables', False) + '\n\n' updated_chunks[j].get('has_tables', False),
+                 'has_tables': chunks[i].get('has_tables', False) + '\n\n'+ updated_chunks[j].get('has_tables', False),
                  'paragraph_count': chunks[i].get('paragraph_count', 0) + updated_chunks[j].get('paragraph_count', 0),
                  'table_count': chunks[i].get('table_count', 0) + updated_chunks[j].get('table_count', 0),
                  'crf_table_count': chunks[i].get('crf_table_count', 0) + updated_chunks[j].get('crf_table_count', 0),

@@ -516,10 +516,9 @@ Clean and return the structured JSON."""
                         
                         try:
                             response = client.chat.completions.create(
-                                model="gpt-4o-mini",  # Fixed model name
+                                model="o4-mini",  
                                 messages=messages_new,
                                 response_format={"type": "json_object"},
-                                temperature=0.1
                             )
                             
                             cleaned_data_json = json.loads(response.choices[0].message.content)
@@ -742,10 +741,10 @@ if st.button("Process Documents", type="primary"):
             else:
                 st.warning("No Protocol data extracted")
             
-            if protocol_errors:
-                with st.expander("View Errors"):
-                    for error in protocol_errors:
-                        st.error(error)
+            # if protocol_errors:
+            #     with st.expander("View Errors"):
+            #         for error in protocol_errors:
+            #             st.error(error)
         else:
             st.error("Could not identify Schedule of Activities pages")
             

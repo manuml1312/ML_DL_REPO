@@ -352,7 +352,7 @@ Return ONLY the cleaned JSON object, no explanations."""
             progress_text = "Extracting tables from Protocol REF PDF..."
             my_bar = st.progress(0, text=progress_text)
 
-            for i in range(len(pdf.pages)):
+            for i in range(2):
                 page = pdf.pages[i]
                 st.write(f"Processing page {i+1}...")
 

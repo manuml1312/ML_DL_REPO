@@ -404,8 +404,8 @@ def extract_table_pages(pdf_path, pdf_file):
         end_page = intro_start_page
     else:
         end_page = schedule_start_page
-        consecutive_empty_pages = 0
-        max_empty_pages = 2  # Stop if 2 consecutive pages have no tables
+    consecutive_empty_pages = 0
+    max_empty_pages = 2  # Stop if 2 consecutive pages have no tables
     
     with pdfplumber.open(pdf_file) as pdf:
         for i in range(schedule_start_page - 1, len(pdf.pages)):  # 0-indexed

@@ -363,7 +363,7 @@ def extract_table_pages(pdf_path, pdf_file):
     with pdfplumber.open(pdf_file) as pdf:
         for i in range(len(pdf.pages)):
             page = pdf.pages[i]
-            text = page.extract_text()
+            text = page.extract_text_simple()
             page_texts.append(text)
     
     # Patterns to find headings

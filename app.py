@@ -693,97 +693,178 @@ option = st.selectbox(
 )
 st.write(option)
 # Process Button
-if st.button("Process Documents"):
-    if uploaded_crf_file is not None or uploaded_protocol_file is not None:
-        st.info("Processing documents...")
+# In your main Streamlit code, replace the protocol processing section:
 
+if st.button("Process Documents", type="primary"):
+    if uploaded_crf_file and uploaded_protocol_file:
+        
         # Save uploaded files temporarily
-        crf_filename = "uploaded_crf.docx"
-        protocol_filename = "uploaded_protocol.pdf"
-
-        st.subheader("Protocol REF Processing Results (Table Extraction)")
-        # Process Protocol REF using pdfplumber
-        if option=="Document with other Content":
-            extracted_pdf = extract_table_pages(protocol_filename,uploaded_protocol_file)
-            if extracted_pdf:
-                file=''
-                protocol_df = process_protocol_pdf_pdfplumber(extracted_pdf,system_prompt_pr)
-                st.write(protocol_df)
-        else:
-            protocol_df = process_protocol_pdf_pdfplumber(uploaded_protocol_file,system_prompt_pr)
-            st.write(protocol_df)
-
-        if protocol_df:
-            st.write("Extracted and Cleaned Table Data from Protocol REF:")
-            try:
-                st.dataframe(protocol_df)
-            except Exception as e:
-                dup=protocol_df.copy()
-                dup.columns = [f"{c}_{i}" for i, c in enumerate(dup.columns)]
-                st.dataframe(dup)
-        # else:
-        #     st.write("Output Not Available")
-
-
-            # Provide download link for Protocol data
-            @st.cache_data
-            def convert_df_to_excel(df):
-                return df.to_csv(index=False)
-
-            protocol_excel_data = convert_df_to_excel(protocol_df)
-            st.download_button(
-                label="Download Protocol REF Table Data as Excel",
-                data=protocol_excel_data,
-                file_name='protocol_ref_table_data.csv',
-                mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        crf_path = "temp_crf.docx"
+        protocol_path = "temp_protocol.pdf"
+        
+        with open(crf_path, "wb") as f:
+            f.write(uploaded_crf_file.getbuffer())
+        with open(protocol_path, "wb") as f:
+            f.write(uploaded_protocol_file.getbuffer())
+        
+        st.success("Files uploaded successfully")
+        
+        # Process Protocol - CORRECTED FLOW
+        st.subheader("Protocol REF Processing")
+        
+        # Step 1: Extract table pages
+        with st.spinner("Identifying Schedule of Activities pages..."):
+            # Pass both the path AND the file object to extract_table_pages
+            extracted_pdf_path = extract_table_pages(protocol_path, protocol_path)
+        
+        if extracted_pdf_path:
+            # Step 2: Process the extracted tables
+            protocol_progress = st.empty()
+            protocol_df = process_protocol_parallel(
+                extracted_pdf_path, 
+                system_prompt_pr
             )
+            protocol_progress.empty()
+            
+            if not protocol_df.empty:
+                st.success(f"Extracted {len(protocol_df)} rows")
+                st.dataframe(protocol_df)
+                st.download_button(
+                    "Download Protocol Data",
+                    data=protocol_df.to_csv(index=False).encode('utf-8'),
+                    file_name='protocol_extraction.csv',
+                    mime='text/csv'
+                )
+            else:
+                st.warning("No Protocol data extracted")
+            
+            if protocol_errors:
+                with st.expander("View Errors"):
+                    for error in protocol_errors:
+                        st.error(error)
         else:
-            st.warning("No tables extracted or processed successfully from the Protocol REF.")
+            st.error("Could not identify Schedule of Activities pages")
+            
+        # Process Mock CRF
+        st.subheader("Mock CRF Processing")
+        with st.spinner("Chunking document..."):
+            chunker = DOCXCRFChunker(max_chunk_size=15000, overlap_size=500)
+            crf_chunks = chunker.extract_and_chunk(crf_path)
+            st.info(f"Created {len(crf_chunks)} chunks")
+        
+        crf_progress = st.empty()
+        crf_df, crf_errors = process_crf_parallel(crf_chunks, crf_progress)
+        crf_progress.empty()
+        
+        if not crf_df.empty:
+            st.success(f"Extracted {len(crf_df)} items")
+            st.dataframe(crf_df)
+            st.download_button(
+                "Download CRF Data",
+                data=crf_df.to_csv(index=False).encode('utf-8'),
+                file_name='crf_extraction.csv',
+                mime='text/csv'
+            )
+            
+        # Cleanup
+        for f in [crf_path, protocol_path]:
+            if os.path.exists(f):
+                os.remove(f)
+        if extracted_pdf_path and os.path.exists(extracted_pdf_path):
+            os.remove(extracted_pdf_path)
+        
+        st.success("Processing complete!")
+# if st.button("Process Documents"):
+#     if uploaded_crf_file is not None or uploaded_protocol_file is not None:
+#         st.info("Processing documents...")
+
+#         # Save uploaded files temporarily
+#         crf_filename = "uploaded_crf.docx"
+#         protocol_filename = "uploaded_protocol.pdf"
+
+#         st.subheader("Protocol REF Processing Results (Table Extraction)")
+#         # Process Protocol REF using pdfplumber
+#         if option=="Document with other Content":
+#             extracted_pdf = extract_table_pages(protocol_filename,uploaded_protocol_file)
+#             if extracted_pdf:
+#                 file=''
+#                 protocol_df = process_protocol_pdf_pdfplumber(extracted_pdf,system_prompt_pr)
+#                 st.write(protocol_df)
+#         else:
+#             protocol_df = process_protocol_pdf_pdfplumber(uploaded_protocol_file,system_prompt_pr)
+#             st.write(protocol_df)
+
+#         if protocol_df:
+#             st.write("Extracted and Cleaned Table Data from Protocol REF:")
+#             try:
+#                 st.dataframe(protocol_df)
+#             except Exception as e:
+#                 dup=protocol_df.copy()
+#                 dup.columns = [f"{c}_{i}" for i, c in enumerate(dup.columns)]
+#                 st.dataframe(dup)
+#         # else:
+#         #     st.write("Output Not Available")
+
+
+#             # Provide download link for Protocol data
+#             @st.cache_data
+#             def convert_df_to_excel(df):
+#                 return df.to_csv(index=False)
+
+#             protocol_excel_data = convert_df_to_excel(protocol_df)
+#             st.download_button(
+#                 label="Download Protocol REF Table Data as Excel",
+#                 data=protocol_excel_data,
+#                 file_name='protocol_ref_table_data.csv',
+#                 mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+#             )
+#         else:
+#             st.warning("No tables extracted or processed successfully from the Protocol REF.")
 
         
-        with open(crf_filename, "wb") as f:
-            f.write(uploaded_crf_file.getbuffer())
+#         with open(crf_filename, "wb") as f:
+#             f.write(uploaded_crf_file.getbuffer())
 
-        with open(protocol_filename, "wb") as f:
-            f.write(uploaded_protocol_file.getbuffer())
+#         with open(protocol_filename, "wb") as f:
+#             f.write(uploaded_protocol_file.getbuffer())
 
-        st.success("Files uploaded successfully.")
+#         st.success("Files uploaded successfully.")
 
-        # Process Mock CRF
-        st.subheader("Mock CRF Processing Results")
-        crf_chunks = process_crf_docx(crf_filename)
+#         # Process Mock CRF
+#         st.subheader("Mock CRF Processing Results")
+#         crf_chunks = process_crf_docx(crf_filename)
 
-        if crf_chunks:
-            crf_extraction_df = ai_extract(crf_chunks, System_prompt)
-            if crf_extraction_df:
-                st.write("Extracted CRF Data:")
-                st.dataframe(crf_extraction_df)
+#         if crf_chunks:
+#             crf_extraction_df = ai_extract(crf_chunks, System_prompt)
+#             if crf_extraction_df:
+#                 st.write("Extracted CRF Data:")
+#                 st.dataframe(crf_extraction_df)
 
-                # Provide download link for CRF data
-                @st.cache_data
-                def convert_df_to_excel(df):
-                    return df.to_csv(index=False)
+#                 # Provide download link for CRF data
+#                 @st.cache_data
+#                 def convert_df_to_excel(df):
+#                     return df.to_csv(index=False)
 
-                crf_excel_data = convert_df_to_excel(crf_extraction_df)
-                st.download_button(
-                    label="Download Extracted CRF Data as Excel",
-                    data=crf_excel_data,
-                    file_name='extracted_crf_data.csv',
-                    mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-                )
-        else:
-             st.warning("No chunks generated from the Mock CRF.")
+#                 crf_excel_data = convert_df_to_excel(crf_extraction_df)
+#                 st.download_button(
+#                     label="Download Extracted CRF Data as Excel",
+#                     data=crf_excel_data,
+#                     file_name='extracted_crf_data.csv',
+#                     mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+#                 )
+#         else:
+#              st.warning("No chunks generated from the Mock CRF.")
 
-        # Clean up temporary files
-        if st.button('Clear Files History'):
-            if os.path.exists(crf_filename):
-                os.remove(crf_filename)
-            if os.path.exists(protocol_filename):
-                 os.remove(protocol_filename)
-            if os.path.exists("Schedule_of_Activities.pdf"):
-                 os.remove("Schedule_of_Activities.pdf")
+#         # Clean up temporary files
+#         if st.button('Clear Files History'):
+#             if os.path.exists(crf_filename):
+#                 os.remove(crf_filename)
+#             if os.path.exists(protocol_filename):
+#                  os.remove(protocol_filename)
+#             if os.path.exists("Schedule_of_Activities.pdf"):
+#                  os.remove("Schedule_of_Activities.pdf")
 
-        st.success("Processing complete.")
+#         st.success("Processing complete.")
 
-    else:
-        st.warning("Please upload both Mock CRF and Protocol REF documents to start processing.")
+#     else:
+#         st.warning("Please upload both Mock CRF and Protocol REF documents to start processing.")

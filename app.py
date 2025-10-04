@@ -15,6 +15,37 @@ api_key = st.secrets["api_key"]
 # For this example, I'll use the key you provided, but using Streamlit secrets is recommended for deployment
 client = OpenAI(api_key=api_key)
 
+def table_ai(combined_data):
+    
+    combined_data2 = combined_data.to_json(orient='records')
+    user_prompt_pr = f"""INPUT JSON: {combined_data2}
+
+    # Carefully watch the columns and how the headers change with the sub header column formats.
+    Provide output in the form of JSON only."""
+    
+    messages_new = [
+        {'role': 'system', 'content': system_prompt_pr},
+        {'role': 'user', 'content': user_prompt_pr}
+    ]
+    
+    try:
+        response = client.chat.completions.create(
+            model="o4-mini",  
+            messages=messages_new,
+            response_format={"type": "json_object"},
+        )
+        
+        cleaned_data_json = json.loads(response.choices[0].message.content)
+        
+        if 'data' in cleaned_data_json and cleaned_data_json['data']:
+            all_extracted_data=cleaned_data_json['data']
+            st.write(pd.DataFrame(cleaned_data_json['data']))
+        else:
+            st.warning(f"API returned empty data")# for table {table_idx+1} on page {i+1}.")
+    
+    except Exception as api_e:
+        st.error(f"API error cleaning table: {api_e}")
+        
 def combine_rows(df3):
     fd = pd.DataFrame()
     df3[0]=df3[0].fillna(method='ffill')
@@ -335,43 +366,33 @@ def process_crf_docx(docx_path: str) -> List[Dict[str, Any]]:
 system_prompt_pr = """You are a clinical trial data structuring specialist. Clean and restructure the provided Schedule of Activities table JSON.
 
 INPUT: A messy JSON where:
-- Multiple visit codes may be packed into single cells (e.g., "V2D-2\nV2D-1 V2D1")
-- Phase names might contain merged visits (e.g., "V16 V17 V18 V19 V20 V21 V22 V23")
+- Multiple visit codes are packed into single cells (e.g., "V2D-2\nV2D-1 V2D1")
+- Phase names contain merged visits (e.g., "V16 V17 V18 V19 V20 V21 V22 V23")
 - Timing and window values may be in wrong positions
-- Null/None values should be replaced with empty strings
-- Headers are incomplete - row 0 contains parent headers that span multiple columns, but only the first column of each group has the header text.
+- Null values where phase names should repeat
+
 REQUIRED TRANSFORMATIONS:
 
-1. **Reconstruct Split Headers**
-   - Row 0 contains parent headers that apply to multiple columns beneath them
-   - When you see a format change in visit codes (e.g., V1, V2D-1, V2D1, SxD1, V14,V15), this indicates a new column group starting
-   - The parent header from row 0 should be propagated to ALL columns in that group
-   - Add subscripts (_1, _2, _3, etc.) to distinguish columns under the same parent header
-   - Example: If "Screening Phase" appears in column 2, and columns 2-5 all have visit data before format changes to a new phase, then columns 2-5 should be "Screening Phase_1", "Screening Phase_2", etc.
-
-2. **Split Merged Visit Columns**
+1. **Split Merged Visit Columns**
    - When a cell contains multiple visits separated by spaces or newlines (e.g., "V2D-2\nV2D-1 V2D1" or "V16 V17 V18")
    - Create separate columns for EACH visit
    - Distribute timing, window, and X-mark data appropriately across the new columns
-   - Visit code format changes indicate phase boundaries
 
-3. **Propagate Phase Names**
-   - When column "0" is null/empty, fill with the phase name from the most recent non-null row above
+2. **Propagate Phase Names**
+   - When column "0" is null, fill with the phase name from the most recent non-null row above
    - Examples: "Randomisation (V2) In-house visit", "Treatment Maintenance period Ambulatory visit"
 
-4. **Clean Text**
+3. **Clean Text**
    - Remove all "\n" characters from text
    - Fix spacing issues (e.g., "Withdraw al" → "Withdrawal")
-   - Fix spelling mistakes
    - Keep protocol section references intact (e.g., "10.1.3", "8.1", "5.1, 5.2")
-   - Replace None/null values with empty strings ""
 
-5. **Align Timing Data**
+4. **Align Timing Data**
    - Ensure "Timing of Visit (Days)" values align with their respective visit columns
    - Ensure "Visit Window (Days)" values (±2, ±3, +3) align correctly
    - Ensure "Timing of Visit (Weeks)" values align correctly
 
-6. **Preserve Structure**
+5. **Preserve Structure**
    - Maintain row order exactly as provided
    - Keep header rows (rows 0-1) at top
    - Keep all procedure rows in original sequence
@@ -380,18 +401,14 @@ REQUIRED TRANSFORMATIONS:
 OUTPUT FORMAT:
 Return a clean JSON object with the same structure as input, but with:
 - Each visit in its own numbered column key
-- Parent headers from row 0 propagated with subscripts (_1, _2, _3) to all columns in that phase group
 - Phase names repeated where nulls existed
 - All text cleaned and properly formatted
 - Timing/window values correctly aligned
 - All X marks preserved in correct positions
-- None/null replaced with ""
 
-CRITICAL: 
-- Visit code format changes (V1 → V2D-1 → SxD1 → V14) indicate new phase groups for header propagation
-- When splitting merged visits, ensure X marks stay with the correct visit
-- If the table does not start with the column names, then its the continuation of the previous table, so don't re order the rows. Just preserve the order everytime.
-- Timing values must match the correct visit
+CRITICAL: When splitting merged visits, ensure that:
+- X marks stay with the correct visit
+- Timing values match the correct visit
 - The total number of columns increases to accommodate all individual visits
 
 Return ONLY the cleaned JSON object, no explanations."""
@@ -789,6 +806,8 @@ if st.button("Process Documents", type="primary"):
                 except Exception as e:
                     dup1 = protocol_df.copy()
                     dup1.columns = [f"{c}_{i}" for i,c in enumerate(dup1.columns)]
+                    st.write("Table with and without ai postprocessing")
+                    table_ai(dup1)
                     st.dataframe(dup1)
                     
                 st.download_button(

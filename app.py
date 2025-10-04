@@ -380,17 +380,6 @@ def extract_table_pages(pdf_file):
             if schedule_start_page and intro_start_page:
                 st.write("Start:",schedule_start_page,"\n End:",intro_start_page)
                 break
-            
-    # for i in range(1, len(page_texts)):  # Start from page 2 (index 1)
-    #     text = page_texts[i]
-    #     if schedule_pattern.search(text):
-    #         schedule_start_page = i + 1  # 1-indexed
-    #     if intro_pattern.search(text):
-    #         intro_start_page = i+1
-    #     if schedule_start_page and intro_start_page:
-    #         st.write("Start:",schedule_start_page,"\n End:",intro_start_page)
-    #         break
-        
     
     if not schedule_start_page:
         pdf_document.close()
@@ -514,7 +503,7 @@ def process_protocol_pdf_pdfplumber(extracted_pdf_path, system_prompt_pr) -> pd.
                         
                         user_prompt_pr = f"""INPUT JSON: {raw_json}
 
-Clean and return the structured JSON."""
+                        Clean and return the structured JSON."""
                         
                         messages_new = [
                             {'role': 'system', 'content': system_prompt_pr},

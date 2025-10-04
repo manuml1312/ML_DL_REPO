@@ -43,7 +43,7 @@ def combine_rows(df3):
             fd = pd.concat([fd, pd.DataFrame([result])], ignore_index=True)
         except Exception as e:
             print(f"Error processing group {groups[i]}: {e}")
-    return fd.drop_duplicates().reset_index(drop=True)
+    return fd.drop_duplicates().fillna('').reset_index(drop=True)
 
 class DOCXCRFChunker:
     def __init__(self, max_chunk_size: int = 15000, overlap_size: int = 500):
@@ -335,10 +335,11 @@ def process_crf_docx(docx_path: str) -> List[Dict[str, Any]]:
 system_prompt_pr = """You are a clinical trial data structuring specialist. Clean and restructure the provided Schedule of Activities table JSON.
 
 INPUT: A messy JSON where:
-- Multiple visit codes are packed into single cells (e.g., "V2D-2\nV2D-1 V2D1")
-- Phase names contain merged visits (e.g., "V16 V17 V18 V19 V20 V21 V22 V23")
+- Multiple visit codes may be packed into single cells (e.g., "V2D-2\nV2D-1 V2D1")
+- Phase names might contain merged visits (e.g., "V16 V17 V18 V19 V20 V21 V22 V23")
 - Timing and window values may be in wrong positions
 - Null values where phase names should repeat
+- None values to be replace with white space
 
 REQUIRED TRANSFORMATIONS:
 

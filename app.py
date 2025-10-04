@@ -697,7 +697,7 @@ uploaded_protocol_file = st.file_uploader("Upload Protocol REF (.pdf)", type="pd
 # )
 # Process Button
 # In your main Streamlit code, replace the protocol processing section:
-
+_em = st.empty()
 if st.button("Process Documents", type="primary"):
     if uploaded_crf_file and uploaded_protocol_file:
         
@@ -739,7 +739,7 @@ if st.button("Process Documents", type="primary"):
                 except Exception as e:
                     dup1 = protocol_df.copy()
                     dup1.columns = [f"{c}_{i}" for i,c in enumerate(dup1.columns)]
-                    st.dataframe(dup)
+                    st.dataframe(dup1)
                     
                 st.download_button(
                     "Download Protocol Data",
@@ -775,7 +775,7 @@ if st.button("Process Documents", type="primary"):
             except Exception as e:
                 dup2 = crf_df.copy()
                 dup2.columns = [f"{c}_{i}" for i,c in enumerate(dup2.columns)]
-                st.dataframe(crf_df)
+                st.dataframe(dup2)
                 
             st.download_button(
                 "Download CRF Data",

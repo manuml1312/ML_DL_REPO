@@ -416,10 +416,10 @@ def extract_table_pages(pdf_file):
             page = pdf.pages[i]
             try:
                 text = str(page.extract_text_lines())
-                st.write(text)
+                # st.write(text)
             except Exception as e:
                 text = page.extract_text().lower()
-                st.write('text',text)
+                # st.write('text',text)
             # st.write(text)
             if schedule_pattern.search(text):
                 schedule_start_page = i + 1

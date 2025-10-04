@@ -354,9 +354,9 @@ CRITICAL: When splitting merged visits, ensure that:
 Return ONLY the cleaned JSON object, no explanations."""
 
 
-def extract_table_pages(pdf_path, pdf_file):
+def extract_table_pages(pdf_file):
     """Extract pages containing Schedule of Activities tables"""
-    pdf_document = fitz.open(pdf_path)
+    pdf_document = fitz.open(pdf_file)
     page_texts = []
     
     # Extract text from all pages
@@ -376,7 +376,7 @@ def extract_table_pages(pdf_path, pdf_file):
     
     for i in range(1, len(page_texts)):  # Start from page 2 (index 1)
         text = page_texts[i]
-        st.write(text[0:100])
+        # st.write(text[0:100])
         if schedule_pattern.search(text):
             schedule_start_page = i + 1  # 1-indexed
         if intro_pattern.search(text):
@@ -718,7 +718,7 @@ if st.button("Process Documents", type="primary"):
         with st.spinner("Identifying the required tables..."):
             # Pass both the path AND the file object to extract_table_pages
             # if option=='Document with other Content':
-            extracted_pdf_path = extract_table_pages(protocol_path, protocol_path)
+            extracted_pdf_path = extract_table_pages(protocol_path)
             # else:
             # extracted_pdf_path = protocol_path
         

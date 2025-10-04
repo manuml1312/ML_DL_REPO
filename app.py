@@ -715,12 +715,12 @@ if st.button("Process Documents", type="primary"):
         st.subheader("Protocol REF Processing")
         
         # Step 1: Extract table pages
-        with st.spinner("Identifying Schedule of Activities pages..."):
+        with st.spinner("Identifying the required tables..."):
             # Pass both the path AND the file object to extract_table_pages
-            if option=='Document with other Content':
-                extracted_pdf_path = extract_table_pages(protocol_path, protocol_path)
-            else:
-                extracted_pdf_path = protocol_path
+            # if option=='Document with other Content':
+            #     extracted_pdf_path = extract_table_pages(protocol_path, protocol_path)
+            # else:
+            extracted_pdf_path = protocol_path
         
         if extracted_pdf_path:
             # Step 2: Process the extracted tables

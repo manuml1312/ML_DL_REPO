@@ -768,7 +768,7 @@ if st.button("Process Documents", type="primary"):
         with st.spinner("Chunking document..."):
             chunker = DOCXCRFChunker(max_chunk_size=15000, overlap_size=500)
             crf_chunks = process_crf_docx(crf_path)
-            crf_df = ai_extract(crf_chunks)
+            crf_df = ai_extract(crf_chunks,System_prompt)
             st.info(f"Created {len(crf_chunks)} chunks")
         
         if not crf_df.empty:

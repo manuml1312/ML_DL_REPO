@@ -338,31 +338,41 @@ INPUT: A messy JSON where:
 - Multiple visit codes may be packed into single cells (e.g., "V2D-2\nV2D-1 V2D1")
 - Phase names might contain merged visits (e.g., "V16 V17 V18 V19 V20 V21 V22 V23")
 - Timing and window values may be in wrong positions
-- Null values where phase names should repeat
-- None values to be replace with white space
+- Null/None values should be replaced with empty strings
+- Headers are incomplete - row 0 contains parent headers that span multiple columns, but only the first column of each group has the header text
 
 REQUIRED TRANSFORMATIONS:
 
-1. **Split Merged Visit Columns**
+1. **Reconstruct Split Headers**
+   - Row 0 contains parent headers that apply to multiple columns beneath them
+   - When you see a format change in visit codes (e.g., V1, V2D-1, V2D1, SxD1, V14), this indicates a new column group starting
+   - The parent header from row 0 should be propagated to ALL columns in that group
+   - Add subscripts (_1, _2, _3, etc.) to distinguish columns under the same parent header
+   - Example: If "Screening Phase" appears in column 2, and columns 2-5 all have visit data before format changes to a new phase, then columns 2-5 should be "Screening Phase_1", "Screening Phase_2", etc.
+
+2. **Split Merged Visit Columns**
    - When a cell contains multiple visits separated by spaces or newlines (e.g., "V2D-2\nV2D-1 V2D1" or "V16 V17 V18")
    - Create separate columns for EACH visit
    - Distribute timing, window, and X-mark data appropriately across the new columns
+   - Visit code format changes indicate phase boundaries
 
-2. **Propagate Phase Names**
-   - When column "0" is null, fill with the phase name from the most recent non-null row above
+3. **Propagate Phase Names**
+   - When column "0" is null/empty, fill with the phase name from the most recent non-null row above
    - Examples: "Randomisation (V2) In-house visit", "Treatment Maintenance period Ambulatory visit"
 
-3. **Clean Text**
+4. **Clean Text**
    - Remove all "\n" characters from text
    - Fix spacing issues (e.g., "Withdraw al" → "Withdrawal")
+   - Fix spelling mistakes
    - Keep protocol section references intact (e.g., "10.1.3", "8.1", "5.1, 5.2")
+   - Replace None/null values with empty strings ""
 
-4. **Align Timing Data**
+5. **Align Timing Data**
    - Ensure "Timing of Visit (Days)" values align with their respective visit columns
    - Ensure "Visit Window (Days)" values (±2, ±3, +3) align correctly
    - Ensure "Timing of Visit (Weeks)" values align correctly
 
-5. **Preserve Structure**
+6. **Preserve Structure**
    - Maintain row order exactly as provided
    - Keep header rows (rows 0-1) at top
    - Keep all procedure rows in original sequence
@@ -371,14 +381,17 @@ REQUIRED TRANSFORMATIONS:
 OUTPUT FORMAT:
 Return a clean JSON object with the same structure as input, but with:
 - Each visit in its own numbered column key
+- Parent headers from row 0 propagated with subscripts (_1, _2, _3) to all columns in that phase group
 - Phase names repeated where nulls existed
 - All text cleaned and properly formatted
 - Timing/window values correctly aligned
 - All X marks preserved in correct positions
+- None/null replaced with ""
 
-CRITICAL: When splitting merged visits, ensure that:
-- X marks stay with the correct visit
-- Timing values match the correct visit
+CRITICAL: 
+- Visit code format changes (V1 → V2D-1 → SxD1 → V14) indicate new phase groups for header propagation
+- When splitting merged visits, ensure X marks stay with the correct visit
+- Timing values must match the correct visit
 - The total number of columns increases to accommodate all individual visits
 
 Return ONLY the cleaned JSON object, no explanations."""

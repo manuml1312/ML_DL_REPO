@@ -28,7 +28,7 @@ class DOCXCRFChunker:
             r'V\d+(?:,\s*V\d+)*', # V1, V2, V3 (visit schedules)
         ]
 
-    def extract_and_chunk(self, docx_path: str) -> List[Dict[str, Any]]:
+    def extract_and_chunk(self, docx_path: str):
         """Extract text from DOCX and create table-aware chunks"""
 
         doc = Document(docx_path)

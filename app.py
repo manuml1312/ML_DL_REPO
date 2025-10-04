@@ -533,34 +533,7 @@ def process_protocol_pdf_pdfplumber(extracted_pdf_path, system_prompt_pr) -> pd.
                     combined_data2 = [{'data':combined_data.to_json(orient='records')}]
                     st.write(combined_data2)
                 if not combined_data.empty:
-                    df = pd.concat((df,combined_data))
-                        
-                        # user_prompt_pr = f"""INPUT JSON: {combined_data}
-
-                        # Clean and return the structured JSON."""
-                        
-                        # messages_new = [
-                        #     {'role': 'system', 'content': system_prompt_pr},
-                        #     {'role': 'user', 'content': user_prompt_pr}
-                        # ]
-                        
-                        # try:
-                        #     response = client.chat.completions.create(
-                        #         model="o4-mini",  
-                        #         messages=messages_new,
-                        #         response_format={"type": "json_object"},
-                        #     )
-                            
-                        #     cleaned_data_json = json.loads(response.choices[0].message.content)
-                            
-                        #     if 'data' in cleaned_data_json and cleaned_data_json['data']:
-                        #         all_extracted_data.extend(cleaned_data_json['data'])
-                        #     else:
-                        #         st.warning(f"API returned empty data for table {table_idx+1} on page {i+1}.")
-                        
-                        # except Exception as api_e:
-                        #     st.error(f"API error cleaning table on page {i+1}: {api_e}")
-                
+                    df = pd.concat((df,combined_data))                
                 # Update progress
                 progress_percentage = (i + 1) / len(pdf.pages)
                 my_bar.progress(
@@ -582,8 +555,33 @@ def process_protocol_pdf_pdfplumber(extracted_pdf_path, system_prompt_pr) -> pd.
                     
                     # Drop empty columns
                     pr_df = pr_df.dropna(axis=1, how='all')
-                
-                return pr_df
+                    pr_data = [{'data':pr_data.to_json()}]
+                    user_prompt_pr = f"""INPUT JSON: {pr_data}
+
+                    # Clean and return the structured JSON."""
+                    
+                    messages_new = [
+                        {'role': 'system', 'content': system_prompt_pr},
+                        {'role': 'user', 'content': user_prompt_pr}
+                    ]
+                    
+                    try:
+                        response = client.chat.completions.create(
+                            model="o4-mini",  
+                            messages=messages_new,
+                            response_format={"type": "json_object"},
+                        )
+                        
+                        cleaned_data_json = json.loads(response.choices[0].message.content)
+                        
+                        if 'data' in cleaned_data_json and cleaned_data_json['data']:
+                            all_extracted_data = cleaned_data_json['data']
+                            return pd.DataFrame(all_extracted_data)
+                        else:
+                            st.warning(f"API returned empty data"}# for table {table_idx+1} on page {i+1}.")
+                    
+                    except Exception as api_e:
+                        st.error(f"API error cleaning table: {api_e}")
             else:
                 st.warning("No tables extracted from the Protocol REF PDF.")
                 return pd.DataFrame()

@@ -510,7 +510,7 @@ def process_protocol_pdf_pdfplumber(extracted_pdf_path, system_prompt_pr) -> pd.
             
             progress_text = "Extracting tables from Protocol REF PDF..."
             my_bar = st.progress(0, text=progress_text)
-            
+            df = pd.DataFrame()
             for i in range(len(pdf.pages)):
                 page = pdf.pages[i]
                 st.write(f"Processing page {i+1}...")
@@ -529,34 +529,36 @@ def process_protocol_pdf_pdfplumber(extracted_pdf_path, system_prompt_pr) -> pd.
                     
                     combined_data = combine_rows(raw_data)
                     st.write(combined_data)
-                    combined_data = [{'data':combined_data.to_json(orient='records')}]
-                    st.write(combined_data)
-                    if combined_data:
-                        user_prompt_pr = f"""INPUT JSON: {combined_data}
+                    combined_data2 = [{'data':combined_data.to_json(orient='records')}]
+                    st.write(combined_data2)
+                if combined_data2:
+                    df = pd.concat((df,combined_data2))
+                        
+                        # user_prompt_pr = f"""INPUT JSON: {combined_data}
 
-                        Clean and return the structured JSON."""
+                        # Clean and return the structured JSON."""
                         
-                        messages_new = [
-                            {'role': 'system', 'content': system_prompt_pr},
-                            {'role': 'user', 'content': user_prompt_pr}
-                        ]
+                        # messages_new = [
+                        #     {'role': 'system', 'content': system_prompt_pr},
+                        #     {'role': 'user', 'content': user_prompt_pr}
+                        # ]
                         
-                        try:
-                            response = client.chat.completions.create(
-                                model="o4-mini",  
-                                messages=messages_new,
-                                response_format={"type": "json_object"},
-                            )
+                        # try:
+                        #     response = client.chat.completions.create(
+                        #         model="o4-mini",  
+                        #         messages=messages_new,
+                        #         response_format={"type": "json_object"},
+                        #     )
                             
-                            cleaned_data_json = json.loads(response.choices[0].message.content)
+                        #     cleaned_data_json = json.loads(response.choices[0].message.content)
                             
-                            if 'data' in cleaned_data_json and cleaned_data_json['data']:
-                                all_extracted_data.extend(cleaned_data_json['data'])
-                            else:
-                                st.warning(f"API returned empty data for table {table_idx+1} on page {i+1}.")
+                        #     if 'data' in cleaned_data_json and cleaned_data_json['data']:
+                        #         all_extracted_data.extend(cleaned_data_json['data'])
+                        #     else:
+                        #         st.warning(f"API returned empty data for table {table_idx+1} on page {i+1}.")
                         
-                        except Exception as api_e:
-                            st.error(f"API error cleaning table on page {i+1}: {api_e}")
+                        # except Exception as api_e:
+                        #     st.error(f"API error cleaning table on page {i+1}: {api_e}")
                 
                 # Update progress
                 progress_percentage = (i + 1) / len(pdf.pages)

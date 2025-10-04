@@ -522,7 +522,6 @@ def process_protocol_pdf_pdfplumber(extracted_pdf_path, system_prompt_pr) -> pd.
                     st.write(f"Found {len(tables_on_page)} tables on page {i+1}.")
                     raw_data = pd.DataFrame()
                     for table_idx, table_data in enumerate(tables_on_page):
-                        # Skip empty tables
                         if not table_data or len(table_data) < 2:
                             continue
                         
@@ -530,9 +529,10 @@ def process_protocol_pdf_pdfplumber(extracted_pdf_path, system_prompt_pr) -> pd.
                         # raw_data = [list(row) for row in table_data]
                         # raw_json = json.dumps({"data": raw_data})
                         raw_data = pd.concat((raw_data,pd.DataFrame(table_data)))
-                    # raw_data = raw_data.to_json()
+                    
                     combined_data = combine_rows(raw_data)
-                    combined_data = combined_data.to_json()
+                    st.write(combined_data)
+                    combined_data = json.dumps({"data":combined_data})
                     if combined_data:
                         user_prompt_pr = f"""INPUT JSON: {combined_data}
 

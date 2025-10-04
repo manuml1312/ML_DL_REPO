@@ -425,7 +425,7 @@ def extract_table_pages(pdf_file):
             if intro_pattern.search(text):
                 intro_start_page = i+1
                 end_page = i+1
-            if schedule_start_page and intro_start_page:
+            if schedule_start_page and intro_start_page and schedule_start_page-intro_start_page!=0:
                 st.write("Start:",schedule_start_page,"\n End:",intro_start_page)
                 break
     
@@ -530,6 +530,7 @@ def process_protocol_pdf_pdfplumber(extracted_pdf_path, system_prompt_pr) -> pd.
             progress_text = "Extracting tables from Protocol REF PDF..."
             my_bar = st.progress(0, text=progress_text)
             df = pd.DataFrame()
+            combined_data = pd.DataFrame()
             for i in range(len(pdf.pages)):
                 page = pdf.pages[i]
                 st.write(f"Processing page {i+1}...")

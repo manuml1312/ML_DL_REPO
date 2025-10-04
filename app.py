@@ -415,43 +415,41 @@ def extract_table_pages(pdf_file):
         for i in range(len(pdf.pages)):
             page = pdf.pages[i]
             try:
-                text = str(page.extract_text_lines())
-                # st.write(text)
+                text = page.extract_text_lines()
             except Exception as e:
-                text = page.extract_text().lower()
-
-            if schedule_pattern.search(text):
-                schedule_start_page = i + 1
-            if intro_pattern.search(text):
-                intro_start_page = i+1
-                
-            if schedule_start_page and intro_start_page and schedule_start_page-intro_start_page!=0:
-                end_page = intro_start_page
-                st.write("Start:",schedule_start_page,"\n End:",intro_start_page)
-                break
+                text = page.extract_text()
+            page_texts.append(text)
+    
+    schedule_pattern = re.compile(r"schedule of activities", re.IGNORECASE)
+    intro_pattern = re.compile(r"Introduction", re.IGNORECASE)
+    
+    schedule_start_page = None
+    intro_start_page = None
+    
+    for i in range(1, len(page_texts)):
+        text = page_texts[i]
+        if schedule_pattern.search(text):
+            schedule_start_page = i + 1
+        if intro_pattern.search(text):
+            intro_start_page = i + 1
+        if schedule_start_page and intro_start_page:
+            break
     
     if not schedule_start_page:
         pdf_document.close()
-        st.warning("Could not find 'Schedule of Activities' heading in the PDF.")
         return None
-    elif schedule_start_page and not intro_start_page:
-        end_page = len(pdf.pages)
-        st.write(f"Found 'Schedule of Activities' starting on page: {schedule_start_page}")
-        st.write('No "Introduction" section found, reading all tables till end of the document')
     else:
-        pass
-    consecutive_empty_pages = 0
-    max_empty_pages = 2  # Stop if 2 consecutive pages have no tables
+        end_page = intro_start_page if intro_start_page else len(pdf.pages)
     
-
-    # Detect where tables end by checking for continuous table presence
     table_settings = {
         "vertical_strategy": "lines",
         "horizontal_strategy": "lines",
         "snap_tolerance": 300,
         "edge_min_length": 100,
     }
-
+    
+    consecutive_empty_pages = 0
+    max_empty_pages = 2
 
     with pdfplumber.open(pdf_file) as pdf:
         for i in range(schedule_start_page - 1, len(pdf.pages)):  # 0-indexed

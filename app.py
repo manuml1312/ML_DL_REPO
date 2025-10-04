@@ -376,7 +376,7 @@ def extract_table_pages(pdf_file):
     
     for i in range(1, len(page_texts)):  # Start from page 2 (index 1)
         text = page_texts[i]
-        # st.write(text[0:100])
+        st.write(text[0:100])
         if schedule_pattern.search(text):
             schedule_start_page = i + 1  # 1-indexed
         if intro_pattern.search(text):
@@ -390,9 +390,16 @@ def extract_table_pages(pdf_file):
         pdf_document.close()
         st.warning("Could not find 'Schedule of Activities' heading in the PDF.")
         return None
+    elif schedule_start_page and not intro_start_page:
+        end_page = len(pdf.pages)
+        st.write(f"Found 'Schedule of Activities' starting on page: {schedule_start_page}")
+        st.write('No "Introduction" section found, reading all tables till end of the document')
+    else:
+        pass
+    consecutive_empty_pages = 0
+    max_empty_pages = 2  # Stop if 2 consecutive pages have no tables
     
-    st.write(f"Found 'Schedule of Activities' starting on page: {schedule_start_page}")
-    
+
     # Detect where tables end by checking for continuous table presence
     table_settings = {
         "vertical_strategy": "lines",
@@ -401,13 +408,7 @@ def extract_table_pages(pdf_file):
         "edge_min_length": 100,
     }
 
-    if intro_start_page:
-        end_page = intro_start_page
-    else:
-        end_page = schedule_start_page
-    consecutive_empty_pages = 0
-    max_empty_pages = 2  # Stop if 2 consecutive pages have no tables
-    
+
     with pdfplumber.open(pdf_file) as pdf:
         for i in range(schedule_start_page - 1, len(pdf.pages)):  # 0-indexed
             page = pdf.pages[i]

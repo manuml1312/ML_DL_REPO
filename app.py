@@ -529,7 +529,7 @@ def process_protocol_pdf_pdfplumber(extracted_pdf_path, system_prompt_pr) -> pd.
                     
                     combined_data = combine_rows(raw_data)
                     st.write(combined_data)
-                    combined_data = combined_data.to_json(orient='records')
+                    combined_data = [{'data':combined_data.to_json(orient='records')}]
                     st.write(combined_data)
                     if combined_data:
                         user_prompt_pr = f"""INPUT JSON: {combined_data}

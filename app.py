@@ -761,7 +761,7 @@ if st.button("Process Documents", type="primary"):
         st.subheader("Mock CRF Processing")
         with st.spinner("Chunking document..."):
             chunker = DOCXCRFChunker(max_chunk_size=15000, overlap_size=500)
-            crf_chunks = chunker.extract_and_chunk(crf_path,crf_path)
+            crf_chunks = chunker.extract_and_chunk(crf_path)
             st.info(f"Created {len(crf_chunks)} chunks")
         
         crf_progress = st.empty()

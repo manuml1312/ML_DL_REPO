@@ -544,29 +544,9 @@ def process_protocol_pdf_pdfplumber(extracted_pdf_path, system_prompt_pr) -> pd.
                     combined_data = combine_rows(raw_data)
                     st.write(combined_data)
                     combined_data2 = [{'data':combined_data.to_json(orient='records')}]
-                    st.write(combined_data2)
-                if not combined_data.empty:
-                    df = pd.concat((df,combined_data))                
-                # Update progress
-                progress_percentage = (i + 1) / len(pdf.pages)
-                my_bar.progress(
-                    progress_percentage,
-                    text=f"Extracting tables from Protocol REF PDF (page {i+1}/{len(pdf.pages)})..."
-                )
-            
-            my_bar.empty()
-            all_extracted_data = df
-            if not all_extracted_data.empty:
-                # Convert to DataFrame
-                # pr_df = pd.DataFrame(all_extracted_data)
-                pr_df = df.copy()
-                
-                if not pr_df.empty:                    
-                    # Drop empty columns
-                    pr_df = pr_df.dropna(axis=1, how='all')
-                    pr_data = [{'data':pr_df.to_json(orient='records')}]
+                    # st.write(combined_data2)
                     
-                    user_prompt_pr = f"""INPUT JSON: {pr_data}
+                    user_prompt_pr = f"""INPUT JSON: {combined_data2}
 
                     # Clean and return the structured JSON."""
                     
@@ -585,17 +565,41 @@ def process_protocol_pdf_pdfplumber(extracted_pdf_path, system_prompt_pr) -> pd.
                         cleaned_data_json = json.loads(response.choices[0].message.content)
                         
                         if 'data' in cleaned_data_json and cleaned_data_json['data']:
-                            all_extracted_data = cleaned_data_json['data']
-                            pr_df = pd.DataFrame(all_extracted_data)
-                            # Set first row as header
-                            pr_df.columns = pr_df.iloc[0]
-                            pr_df = pr_df[1:].reset_index(drop=True)
-                            return pr_df
+                            all_extracted_data.extend(cleaned_data_json['data'])
+                            # return all_extracted_data
                         else:
                             st.warning(f"API returned empty data")# for table {table_idx+1} on page {i+1}.")
                     
                     except Exception as api_e:
                         st.error(f"API error cleaning table: {api_e}")
+                            
+                if not combined_data.empty:
+                    df = pd.concat((df,combined_data))                
+                # Update progress
+                progress_percentage = (i + 1) / len(pdf.pages)
+                my_bar.progress(
+                    progress_percentage,
+                    text=f"Extracting tables from Protocol REF PDF (page {i+1}/{len(pdf.pages)})..."
+                )
+            
+            my_bar.empty()
+            # all_extracted_data = df
+            if not all_extracted_data.empty:
+                # Convert to DataFrame
+                pr_df = pd.DataFrame(all_extracted_data)
+                # pr_df = df.copy()
+                
+                if not pr_df.empty:
+                    st.write(pr_df)
+                    # Set first row as header
+                    pr_df.columns = pr_df.iloc[0]
+                    pr_df = pr_df[1:].reset_index(drop=True)
+                    
+                    # Drop empty columns
+                    pr_df = pr_df.dropna(axis=1, how='all')
+                    
+                    pr_data = [{'data':pr_df.to_json(orient='records')}]
+                    return pr_df
             else:
                 st.warning("No tables extracted from the Protocol REF PDF.")
                 return pd.DataFrame()

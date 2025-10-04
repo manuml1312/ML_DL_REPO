@@ -358,14 +358,7 @@ def extract_table_pages(pdf_file):
     """Extract pages containing Schedule of Activities tables"""
     pdf_document = fitz.open(pdf_file)
     page_texts = []
-    
-    # Extract text from all pages
-    with pdfplumber.open(pdf_file) as pdf:
-        for i in range(len(pdf.pages)):
-            page = pdf.pages[i]
-            text = page.extract_text_lines()[0]['text'].lower()
-            page_texts.append(text)
-    
+
     # Patterns to find headings
     schedule_pattern = re.compile(r"schedule of activities|Schedule of activities|Schedule of Activities", re.IGNORECASE)
     intro_pattern = re.compile(r"Introduction",re.IGNORECASE)
@@ -374,15 +367,29 @@ def extract_table_pages(pdf_file):
     schedule_start_page = None
     intro_start_page = None
     
-    for i in range(1, len(page_texts)):  # Start from page 2 (index 1)
-        text = page_texts[i]
-        if schedule_pattern.search(text):
-            schedule_start_page = i + 1  # 1-indexed
-        if intro_pattern.search(text):
-            intro_start_page = i+1
-        if schedule_start_page and intro_start_page:
-            st.write("Start:",schedule_start_page,"\n End:",intro_start_page)
-            break
+    # Extract text from all pages
+    with pdfplumber.open(pdf_file) as pdf:
+        for i in range(len(pdf.pages)):
+            page = pdf.pages[i]
+            text = page.extract_text_lines()[0]['text'].lower()
+            st.write(text)
+            if schedule_pattern.search(text):
+                schedule_start_page = i + 1
+            if intro_pattern.search(text):
+                intro_start_page = i+1
+            if schedule_start_page and intro_start_page:
+                st.write("Start:",schedule_start_page,"\n End:",intro_start_page)
+                break
+            
+    # for i in range(1, len(page_texts)):  # Start from page 2 (index 1)
+    #     text = page_texts[i]
+    #     if schedule_pattern.search(text):
+    #         schedule_start_page = i + 1  # 1-indexed
+    #     if intro_pattern.search(text):
+    #         intro_start_page = i+1
+    #     if schedule_start_page and intro_start_page:
+    #         st.write("Start:",schedule_start_page,"\n End:",intro_start_page)
+    #         break
         
     
     if not schedule_start_page:

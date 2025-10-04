@@ -569,7 +569,7 @@ def process_protocol_pdf_pdfplumber(extracted_pdf_path, system_prompt_pr) -> pd.
             
             my_bar.empty()
             all_extracted_data = df
-            if all_extracted_data:
+            if not all_extracted_data.empty:
                 # Convert to DataFrame
                 # pr_df = pd.DataFrame(all_extracted_data)
                 pr_df = df.copy()

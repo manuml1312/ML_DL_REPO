@@ -8,13 +8,42 @@ from openai import OpenAI
 import json
 import os
 import pdfplumber
-
+import numpy as np
 
 # Ensure you have your OpenAI API key set up as an environment variable or use Streamlit secrets
 api_key = st.secrets["api_key"]
 # For this example, I'll use the key you provided, but using Streamlit secrets is recommended for deployment
 client = OpenAI(api_key=api_key)
 
+def combine_rows(df3):
+    fd = pd.DataFrame()
+    df3[0]=df3[0].fillna(method='ffill')
+    groups = df3[0].unique().tolist()
+    for i in range(len(groups)):  # Changed from range(1, len(groups))
+        try:
+            # Get group
+            group_df = df3[df3[0] == groups[i]]
+            df1 = group_df.ffill()
+            df2 = group_df.bfill()
+            df = pd.concat([df1, df2])
+            
+            result = {}
+            for col in df.columns:
+                # print(df[col])
+                values = df[col].dropna()
+                unique_values = values.unique()
+                
+                if len(unique_values) == 0:
+                    result[col] = np.nan
+                elif len(unique_values) == 1:
+                    result[col] = unique_values[0]
+                else:
+                    result[col] = ' '.join(str(v) for v in unique_values)                  
+            # Append result
+            fd = pd.concat([fd, pd.DataFrame([result])], ignore_index=True)
+        except Exception as e:
+            print(f"Error processing group {groups[i]}: {e}")
+    return fd.drop_duplicates().reset_index(drop=True)
 
 class DOCXCRFChunker:
     def __init__(self, max_chunk_size: int = 15000, overlap_size: int = 500):
@@ -458,7 +487,7 @@ def process_protocol_pdf_pdfplumber(extracted_pdf_path, system_prompt_pr) -> pd.
         "explicit_horizontal_lines": [],
         "snap_tolerance": 300,
         "snap_x_tolerance": 6,
-        "snap_y_tolerance": 5.16,
+        "snap_y_tolerance": 4 , #5.16,
         "join_tolerance": 1,
         "join_x_tolerance": 2,
         "join_y_tolerance": 3,
@@ -491,17 +520,21 @@ def process_protocol_pdf_pdfplumber(extracted_pdf_path, system_prompt_pr) -> pd.
                 
                 if tables_on_page:
                     st.write(f"Found {len(tables_on_page)} tables on page {i+1}.")
-                    
+                    raw_data = pd.DataFrame()
                     for table_idx, table_data in enumerate(tables_on_page):
                         # Skip empty tables
                         if not table_data or len(table_data) < 2:
                             continue
                         
                         # Convert to list of lists
-                        raw_data = [list(row) for row in table_data]
-                        raw_json = json.dumps({"data": raw_data})
-                        
-                        user_prompt_pr = f"""INPUT JSON: {raw_json}
+                        # raw_data = [list(row) for row in table_data]
+                        # raw_json = json.dumps({"data": raw_data})
+                        raw_data = pd.concat((raw_data,pd.DataFrame(table_data)))
+                    # raw_data = raw_data.to_json()
+                    combined_data = combine_rows(raw_data)
+                    combined_data = combined_data.to_json(order='records')
+                    if combined_data:
+                        user_prompt_pr = f"""INPUT JSON: {combined_data}
 
                         Clean and return the structured JSON."""
                         

@@ -31,13 +31,18 @@ def table_ai(combined_data):
             messages=messages_new,
             response_format={"type": "json_object"},
         )
-        
-        cleaned_data_json = json.loads(response.choices[0].message.content)
-        
-        if 'data' in cleaned_data_json and cleaned_data_json['data']:
+        st.write(response.choices[0].message.content)
+        try:
+            cleaned_data_json = json.loads(response.choices[0].message.content)
+        except Exception as e:
+            cleaned_data_json = response.choices[0].message.content
+            
+        if 'data' in cleaned_data_json or cleaned_data_json['data']:
             # all_extracted_data=cleaned_data_json['data']
             # st.write(pd.DataFrame(cleaned_data_json['data']))
             return pd.DataFrame(cleaned_data_json['data'])
+        elif cleaned_data_json:
+            return pd.DataFrame(cleaned_data_json)
         else:
             st.warning(f"API returned empty data")# for table {table_idx+1} on page {i+1}.")
     

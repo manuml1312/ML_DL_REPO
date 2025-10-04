@@ -555,7 +555,8 @@ def process_protocol_pdf_pdfplumber(extracted_pdf_path, system_prompt_pr) -> pd.
                     
                     # Drop empty columns
                     pr_df = pr_df.dropna(axis=1, how='all')
-                    pr_data = [{'data':pr_data.to_json()}]
+                    pr_data = [{'data':pr_df.to_json()}]
+                    
                     user_prompt_pr = f"""INPUT JSON: {pr_data}
 
                     # Clean and return the structured JSON."""

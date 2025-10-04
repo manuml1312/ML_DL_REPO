@@ -363,7 +363,7 @@ def extract_table_pages(pdf_file):
     with pdfplumber.open(pdf_file) as pdf:
         for i in range(len(pdf.pages)):
             page = pdf.pages[i]
-            text = page.extract_text_lines()[0]['text']
+            text = page.extract_text_lines()[0]['text'].lower()
             page_texts.append(text)
     
     # Patterns to find headings
@@ -376,7 +376,6 @@ def extract_table_pages(pdf_file):
     
     for i in range(1, len(page_texts)):  # Start from page 2 (index 1)
         text = page_texts[i]
-        # st.write(text[0:100])
         if schedule_pattern.search(text):
             schedule_start_page = i + 1  # 1-indexed
         if intro_pattern.search(text):
@@ -762,11 +761,11 @@ if st.button("Process Documents", type="primary"):
         with st.spinner("Chunking document..."):
             chunker = DOCXCRFChunker(max_chunk_size=15000, overlap_size=500)
             crf_chunks = process_crf_docx(crf_path)
-            crf_df = pd.DataFrame(crf_chunks)
+            crf_df = ai_extract(crf_chunks)
             st.info(f"Created {len(crf_chunks)} chunks")
         
         if not crf_df.empty:
-            st.success(f"Extracted {len(crf_df)} items")
+            st.success(f"Extracted {crf_df.shape[0]} items")
             try:
                 st.dataframe(crf_df)
             except Exception as e:

@@ -70,10 +70,11 @@ def combine_rows(df3):
                     result[col] = ' '.join(str(v) for v in unique_values)                  
             # Append result
             fd = pd.concat([fd, pd.DataFrame([result])], ignore_index=True)
-            return fd.drop_duplicates().fillna('').reset_index(drop=True)
+            
         except Exception as e:
             print(f"Error processing group {groups[i]}: {e}")
-            return pd.DataFrame()
+            # return pd.DataFrame()
+    return fd.drop_duplicates().fillna('').reset_index(drop=True)
     
 
 class DOCXCRFChunker:

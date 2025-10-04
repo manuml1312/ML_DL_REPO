@@ -376,7 +376,7 @@ def extract_table_pages(pdf_file):
     
     for i in range(1, len(page_texts)):  # Start from page 2 (index 1)
         text = page_texts[i]
-        st.write(text[0:100])
+        # st.write(text[0:100])
         if schedule_pattern.search(text):
             schedule_start_page = i + 1  # 1-indexed
         if intro_pattern.search(text):

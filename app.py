@@ -566,7 +566,7 @@ def process_protocol_pdf_pdfplumber(extracted_pdf_path, system_prompt_pr) -> pd.
                         
                         if 'data' in cleaned_data_json and cleaned_data_json['data']:
                             all_extracted_data.extend(cleaned_data_json['data'])
-                            # return all_extracted_data
+                            st.write(pd.DataFrame(cleaned_data_json['data']))
                         else:
                             st.warning(f"API returned empty data")# for table {table_idx+1} on page {i+1}.")
                     

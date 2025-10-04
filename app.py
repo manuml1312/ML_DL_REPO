@@ -339,13 +339,12 @@ INPUT: A messy JSON where:
 - Phase names might contain merged visits (e.g., "V16 V17 V18 V19 V20 V21 V22 V23")
 - Timing and window values may be in wrong positions
 - Null/None values should be replaced with empty strings
-- Headers are incomplete - row 0 contains parent headers that span multiple columns, but only the first column of each group has the header text
-
+- Headers are incomplete - row 0 contains parent headers that span multiple columns, but only the first column of each group has the header text.
 REQUIRED TRANSFORMATIONS:
 
 1. **Reconstruct Split Headers**
    - Row 0 contains parent headers that apply to multiple columns beneath them
-   - When you see a format change in visit codes (e.g., V1, V2D-1, V2D1, SxD1, V14), this indicates a new column group starting
+   - When you see a format change in visit codes (e.g., V1, V2D-1, V2D1, SxD1, V14,V15), this indicates a new column group starting
    - The parent header from row 0 should be propagated to ALL columns in that group
    - Add subscripts (_1, _2, _3, etc.) to distinguish columns under the same parent header
    - Example: If "Screening Phase" appears in column 2, and columns 2-5 all have visit data before format changes to a new phase, then columns 2-5 should be "Screening Phase_1", "Screening Phase_2", etc.
@@ -391,6 +390,7 @@ Return a clean JSON object with the same structure as input, but with:
 CRITICAL: 
 - Visit code format changes (V1 → V2D-1 → SxD1 → V14) indicate new phase groups for header propagation
 - When splitting merged visits, ensure X marks stay with the correct visit
+- If the table does not start with the column names, then its the continuation of the previous table, so don't re order the rows. Just preserve the order everytime.
 - Timing values must match the correct visit
 - The total number of columns increases to accommodate all individual visits
 
@@ -543,35 +543,34 @@ def process_protocol_pdf_pdfplumber(extracted_pdf_path, system_prompt_pr) -> pd.
                     
                     combined_data = combine_rows(raw_data)
                     st.write(combined_data)
-                    combined_data2 = [{'data':combined_data.to_json(orient='records')}]
-                    # st.write(combined_data2)
-                    
-                    user_prompt_pr = f"""INPUT JSON: {combined_data2}
 
-                    # Clean and return the structured JSON."""
+                    # combined_data2 = [{'data':combined_data.head().to_json(orient='records')}]
+                    # user_prompt_pr = f"""INPUT JSON: {combined_data2}
+
+                    # # Carefully watch the columns and how the headers change with the sub header column formats."""
                     
-                    messages_new = [
-                        {'role': 'system', 'content': system_prompt_pr},
-                        {'role': 'user', 'content': user_prompt_pr}
-                    ]
+                    # messages_new = [
+                    #     {'role': 'system', 'content': system_prompt_pr},
+                    #     {'role': 'user', 'content': user_prompt_pr}
+                    # ]
                     
-                    try:
-                        response = client.chat.completions.create(
-                            model="o4-mini",  
-                            messages=messages_new,
-                            response_format={"type": "json_object"},
-                        )
+                    # try:
+                    #     response = client.chat.completions.create(
+                    #         model="o4-mini",  
+                    #         messages=messages_new,
+                    #         response_format={"type": "json_object"},
+                    #     )
                         
-                        cleaned_data_json = json.loads(response.choices[0].message.content)
+                    #     cleaned_data_json = json.loads(response.choices[0].message.content)
                         
-                        if 'data' in cleaned_data_json and cleaned_data_json['data']:
-                            all_extracted_data.extend(cleaned_data_json['data'])
-                            st.write(pd.DataFrame(cleaned_data_json['data']))
-                        else:
-                            st.warning(f"API returned empty data")# for table {table_idx+1} on page {i+1}.")
+                    #     if 'data' in cleaned_data_json and cleaned_data_json['data']:
+                    #         all_extracted_data.extend(cleaned_data_json['data'])
+                    #         st.write(pd.DataFrame(cleaned_data_json['data']))
+                    #     else:
+                    #         st.warning(f"API returned empty data")# for table {table_idx+1} on page {i+1}.")
                     
-                    except Exception as api_e:
-                        st.error(f"API error cleaning table: {api_e}")
+                    # except Exception as api_e:
+                    #     st.error(f"API error cleaning table: {api_e}")
                             
                 if not combined_data.empty:
                     df = pd.concat((df,combined_data))                
@@ -583,11 +582,11 @@ def process_protocol_pdf_pdfplumber(extracted_pdf_path, system_prompt_pr) -> pd.
                 )
             
             my_bar.empty()
-            # all_extracted_data = df
+            all_extracted_data = df
             if not all_extracted_data.empty:
                 # Convert to DataFrame
-                pr_df = pd.DataFrame(all_extracted_data)
-                # pr_df = df.copy()
+                # pr_df = pd.DataFrame(all_extracted_data)
+                pr_df = df.copy()
                 
                 if not pr_df.empty:
                     st.write(pr_df)

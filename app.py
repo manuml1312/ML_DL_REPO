@@ -401,7 +401,7 @@ def extract_table_pages(pdf_file):
         for i in range(len(pdf.pages)):
             page = pdf.pages[i]
             text = page.extract_text_lines()[0]['text'].lower()
-            st.write(text)
+            # st.write(text)
             if schedule_pattern.search(text):
                 schedule_start_page = i + 1
             if intro_pattern.search(text):
@@ -532,7 +532,7 @@ def process_protocol_pdf_pdfplumber(extracted_pdf_path, system_prompt_pr) -> pd.
                         raw_data = pd.concat((raw_data,pd.DataFrame(table_data)))
                     # raw_data = raw_data.to_json()
                     combined_data = combine_rows(raw_data)
-                    combined_data = combined_data.to_json(order='records')
+                    combined_data = combined_data.to_json()
                     if combined_data:
                         user_prompt_pr = f"""INPUT JSON: {combined_data}
 

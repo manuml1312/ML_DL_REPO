@@ -415,7 +415,7 @@ def extract_table_pages(pdf_file):
         for i in range(len(pdf.pages)):
             page = pdf.pages[i]
             try:
-                text = st.write(page.extract_text_lines()[0]['text'].lower())
+                text = st.write(page.extract_text_lines()[0]['text'])
             except Exception as e:
                 text = page.extract_text().lower()
                 st.write('text',text)

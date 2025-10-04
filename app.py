@@ -291,7 +291,7 @@ def process_crf_docx(docx_path: str) -> List[Dict[str, Any]]:
     """Process a CRF DOCX file and return chunks"""
 
     chunker = DOCXCRFChunker(max_chunk_size=15000, overlap_size=500)
-    chunks = chunker.extract_and_chunk(docx_path)
+    chunks = chunker.extract_and_chunk(docx_path,docx_path)
     chunks = combine_chunks(chunks,1500)
 
     # Print summary (optional, can be displayed in Streamlit)
@@ -761,7 +761,7 @@ if st.button("Process Documents", type="primary"):
         st.subheader("Mock CRF Processing")
         with st.spinner("Chunking document..."):
             chunker = DOCXCRFChunker(max_chunk_size=15000, overlap_size=500)
-            crf_chunks = chunker.extract_and_chunk(crf_path)
+            crf_chunks = chunker.extract_and_chunk(crf_path,crf_path)
             st.info(f"Created {len(crf_chunks)} chunks")
         
         crf_progress = st.empty()

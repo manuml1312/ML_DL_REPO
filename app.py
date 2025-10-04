@@ -413,6 +413,7 @@ REQUIRED TRANSFORMATIONS:
 OUTPUT FORMAT:
 Return a clean JSON object with the same structure as input, but with:
 - Each visit in its own numbered column key
+- Sometimes the starting rows might not contain the headers, it means that they are the continued part of the last table. So, do not reorder the rows,keep them as is for all.
 - Parent headers from row 0 propagated with subscripts (_1, _2, _3) to all columns in that phase group
 - Phase names repeated where nulls existed
 - All text cleaned and properly formatted
@@ -583,6 +584,8 @@ def process_protocol_pdf_pdfplumber(extracted_pdf_path, system_prompt_pr) -> pd.
                             
                 if not combined_data.empty:
                     nd = table_ai(combined_data)
+                    st.write('Post processed with AI')
+                    st.write(nd)
                     df = pd.concat((df,nd)) 
                     
                 # Update progress

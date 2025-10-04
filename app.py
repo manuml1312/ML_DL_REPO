@@ -690,10 +690,10 @@ uploaded_protocol_file = st.file_uploader("Upload Protocol REF (.pdf)", type="pd
 st.info("Document with other Content: Used to extract tables from a document combined with other text and tables.")
 st.info("Document with only Tables: Use when there are only tables in the document and no other pages.")
 
-option = st.selectbox(
-    "Select the one with respect to the Protocol Document",
-    ("Document with other Content","Document with only Tables"),
-)
+# option = st.selectbox(
+#     "Select the one with respect to the Protocol Document",
+#     ("Document with other Content","Document with only Tables"),
+# )
 # Process Button
 # In your main Streamlit code, replace the protocol processing section:
 
@@ -718,9 +718,9 @@ if st.button("Process Documents", type="primary"):
         with st.spinner("Identifying the required tables..."):
             # Pass both the path AND the file object to extract_table_pages
             # if option=='Document with other Content':
-            #     extracted_pdf_path = extract_table_pages(protocol_path, protocol_path)
+            extracted_pdf_path = extract_table_pages(protocol_path, protocol_path)
             # else:
-            extracted_pdf_path = protocol_path
+            # extracted_pdf_path = protocol_path
         
         if extracted_pdf_path:
             # Step 2: Process the extracted tables

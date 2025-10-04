@@ -765,7 +765,7 @@ if st.button("Process Documents", type="primary"):
             st.info(f"Created {len(crf_chunks)} chunks")
         
         crf_progress = st.empty()
-        crf_df = process_crf_docx(crf_chunks)
+        crf_df = process_crf_docx(crf_path)
         crf_progress.empty()
         
         if not crf_df.empty:

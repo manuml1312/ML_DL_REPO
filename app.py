@@ -17,7 +17,7 @@ client = OpenAI(api_key=api_key)
 
 def table_ai(combined_data):
     
-    combined_data2 = combined_data.to_json(orient='records')
+    combined_data2 = [{'data':combined_data.to_json(orient='records')}]
     user_prompt_pr = f"""INPUT JSON: {combined_data2}
 
     # Carefully watch the columns and how the headers change with the sub header column formats.

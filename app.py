@@ -548,11 +548,7 @@ def process_protocol_pdf_pdfplumber(extracted_pdf_path, system_prompt_pr) -> pd.
                 # pr_df = pd.DataFrame(all_extracted_data)
                 pr_df = df.copy()
                 
-                if not pr_df.empty:
-                    # Set first row as header
-                    pr_df.columns = pr_df.iloc[0]
-                    pr_df = pr_df[1:].reset_index(drop=True)
-                    
+                if not pr_df.empty:                    
                     # Drop empty columns
                     pr_df = pr_df.dropna(axis=1, how='all')
                     pr_data = [{'data':pr_df.to_json(orient='records')}]
@@ -577,7 +573,11 @@ def process_protocol_pdf_pdfplumber(extracted_pdf_path, system_prompt_pr) -> pd.
                         
                         if 'data' in cleaned_data_json and cleaned_data_json['data']:
                             all_extracted_data = cleaned_data_json['data']
-                            return pd.DataFrame(all_extracted_data)
+                            pr_df = pd.DataFrame(all_extracted_data)
+                            # Set first row as header
+                            pr_df.columns = pr_df.iloc[0]
+                            pr_df = pr_df[1:].reset_index(drop=True)
+                            return pr_df
                         else:
                             st.warning(f"API returned empty data")# for table {table_idx+1} on page {i+1}.")
                     

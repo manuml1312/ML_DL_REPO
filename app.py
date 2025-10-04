@@ -761,12 +761,9 @@ if st.button("Process Documents", type="primary"):
         st.subheader("Mock CRF Processing")
         with st.spinner("Chunking document..."):
             chunker = DOCXCRFChunker(max_chunk_size=15000, overlap_size=500)
-            crf_chunks = chunker.extract_and_chunk(crf_path)
+            crf_chunks = process_crf_docx(crf_path)
+            crf_df = pd.DataFrame(crf_df)
             st.info(f"Created {len(crf_chunks)} chunks")
-        
-        crf_progress = st.empty()
-        crf_df = process_crf_docx(crf_path)
-        crf_progress.empty()
         
         if not crf_df.empty:
             st.success(f"Extracted {len(crf_df)} items")

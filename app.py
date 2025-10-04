@@ -425,6 +425,7 @@ def extract_table_pages(pdf_file):
                 schedule_start_page = i + 1
             if intro_pattern.search(text):
                 intro_start_page = i+1
+                end_page = i+1
             if schedule_start_page and intro_start_page:
                 st.write("Start:",schedule_start_page,"\n End:",intro_start_page)
                 break

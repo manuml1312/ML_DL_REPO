@@ -414,7 +414,11 @@ def extract_table_pages(pdf_file):
     with pdfplumber.open(pdf_file) as pdf:
         for i in range(len(pdf.pages)):
             page = pdf.pages[i]
-            text = page.extract_text_lines()[0]['text'].lower()
+            try:
+                text = st.write(page.extract_text_lines()[0]['text'].lower())
+            except
+                text = page.extract_text().lower()
+                st.write('text',text)
             # st.write(text)
             if schedule_pattern.search(text):
                 schedule_start_page = i + 1

@@ -16,12 +16,9 @@ api_key = st.secrets["api_key"]
 client = OpenAI(api_key=api_key)
 
 def table_ai(combined_data):
-    
     combined_data2 = [{'data':combined_data.to_json(orient='records')}]
     user_prompt_pr = f"""INPUT JSON: {combined_data2}
-
-    # Carefully watch the columns and how the headers change with the sub header column formats.
-    Provide output in the form of JSON only."""
+    Clean and return the structured JSON """
     
     messages_new = [
         {'role': 'system', 'content': system_prompt_pr},
@@ -73,9 +70,11 @@ def combine_rows(df3):
                     result[col] = ' '.join(str(v) for v in unique_values)                  
             # Append result
             fd = pd.concat([fd, pd.DataFrame([result])], ignore_index=True)
+            return fd.drop_duplicates().fillna('').reset_index(drop=True)
         except Exception as e:
             print(f"Error processing group {groups[i]}: {e}")
-    return fd.drop_duplicates().fillna('').reset_index(drop=True)
+            return pd.DataFrame()
+    
 
 class DOCXCRFChunker:
     def __init__(self, max_chunk_size: int = 15000, overlap_size: int = 500):
@@ -562,6 +561,7 @@ def process_protocol_pdf_pdfplumber(extracted_pdf_path, system_prompt_pr) -> pd.
             progress_text = "Extracting tables from Protocol REF PDF..."
             my_bar = st.progress(0, text=progress_text)
             df = pd.DataFrame()
+            df_ai = pd.DataFrame()
             combined_data = pd.DataFrame()
             for i in range(len(pdf.pages)):
                 page = pdf.pages[i]
@@ -586,8 +586,8 @@ def process_protocol_pdf_pdfplumber(extracted_pdf_path, system_prompt_pr) -> pd.
                     nd = table_ai(combined_data)
                     st.write('Post processed with AI')
                     st.write(nd)
-                    df = pd.concat((df,nd)) 
-                    
+                    df = pd.concat((df,combined_data)) 
+                    df_ai = pd.concat((df_ai,nd))   
                 # Update progress
                 progress_percentage = (i + 1) / len(pdf.pages)
                 my_bar.progress(

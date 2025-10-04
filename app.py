@@ -474,14 +474,14 @@ def extract_table_pages(pdf_file):
             break
     
     if not schedule_start_page:
-        st.write("This document does not have the required tables. If you want to over ride and extract press the below button")
-        if st.button('Override'):
-            schedule_start_page = 1
-            intro_start_page = len(pdf.pages)
-            end_page = intro_start_page
-        else:
-            pdf_document.close()
-            return None
+        # st.write("This document does not have the required tables. If you want to over ride and extract press the below button")
+        # if st.button('Override'):
+        #     schedule_start_page = 1
+        #     intro_start_page = len(pdf.pages)
+        #     end_page = intro_start_page
+        # else:
+        pdf_document.close()
+        return None
     else:
         end_page = intro_start_page if intro_start_page else len(pdf.pages)
     

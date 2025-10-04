@@ -733,7 +733,13 @@ if st.button("Process Documents", type="primary"):
             
             if not protocol_df.empty:
                 st.success(f"Extracted {len(protocol_df)} rows")
-                st.dataframe(protocol_df)
+                try:
+                    st.dataframe(protocol_df)
+                except Exception as e:
+                    dup1 = protocol_df.copy()
+                    dup1.columns = [f"{c}_{i}" for i,c in enumerate(dup1.columns)]
+                    st.dataframe(dup)
+                    
                 st.download_button(
                     "Download Protocol Data",
                     data=protocol_df.to_csv(index=False).encode('utf-8'),
@@ -763,7 +769,13 @@ if st.button("Process Documents", type="primary"):
         
         if not crf_df.empty:
             st.success(f"Extracted {len(crf_df)} items")
-            st.dataframe(crf_df)
+            try:
+                st.dataframe(crf_df)
+            except Exception as e:
+                dup2 = crf_df.copy()
+                dup2.columns = [f"{c}_{i}" for i,c in enumerate(dup2.columns)]
+                st.dataframe(crf_df)
+                
             st.download_button(
                 "Download CRF Data",
                 data=crf_df.to_csv(index=False).encode('utf-8'),
@@ -779,6 +791,16 @@ if st.button("Process Documents", type="primary"):
             os.remove(extracted_pdf_path)
         
         st.success("Processing complete!")
+                # Clean up temporary files
+        if st.button('Clear Files History'):
+            if os.path.exists(crf_path):
+                os.remove(crf_path)
+            if os.path.exists(protocol_path):
+                 os.remove(protocol_path)
+            if os.path.exists("Schedule_of_Activities.pdf"):
+                 os.remove("Schedule_of_Activities.pdf")
+
+#         st.success("Processing complete.")
 # if st.button("Process Documents"):
 #     if uploaded_crf_file is not None or uploaded_protocol_file is not None:
 #         st.info("Processing documents...")

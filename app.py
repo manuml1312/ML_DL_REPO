@@ -578,7 +578,7 @@ def process_protocol_pdf_pdfplumber(extracted_pdf_path, system_prompt_pr) -> pd.
                             all_extracted_data = cleaned_data_json['data']
                             return pd.DataFrame(all_extracted_data)
                         else:
-                            st.warning(f"API returned empty data"}# for table {table_idx+1} on page {i+1}.")
+                            st.warning(f"API returned empty data")# for table {table_idx+1} on page {i+1}.")
                     
                     except Exception as api_e:
                         st.error(f"API error cleaning table: {api_e}")

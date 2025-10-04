@@ -812,7 +812,8 @@ if st.button("Process Documents", type="primary"):
                     "Download Protocol Data",
                     data=protocol_df.to_csv(index=False).encode('utf-8'),
                     file_name='protocol_extraction.csv',
-                    mime='text/csv'
+                    mime='text/csv',
+                    type = 'primary'
                 )
             else:
                 st.warning("No Protocol data extracted")
@@ -845,7 +846,8 @@ if st.button("Process Documents", type="primary"):
                 "Download CRF Data",
                 data=crf_df.to_csv(index=False).encode('utf-8'),
                 file_name='crf_extraction.csv',
-                mime='text/csv'
+                mime='text/csv',
+                type = 'primary'
             )
             
         # Cleanup

@@ -597,7 +597,7 @@ def process_protocol_pdf_pdfplumber(extracted_pdf_path, system_prompt_pr) -> pd.
                     # Drop empty columns
                     pr_df = pr_df.dropna(axis=1, how='all')
                     
-                    pr_data = [{'data':pr_df.to_json(orient='records')}]
+                    # pr_data = [{'data':pr_df.to_json(orient='records')}]
                     return pr_df
             else:
                 st.warning("No tables extracted from the Protocol REF PDF.")

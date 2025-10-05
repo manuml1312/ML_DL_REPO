@@ -453,12 +453,12 @@ def extract_table_pages(pdf_file):
         for i in range(len(pdf.pages)):
             page = pdf.pages[i]
             try:
-                text = str(page.extract_text_lines())
+                text = str(page.extract_text()) 
                 # st.write(text)
             except Exception as e:
-                text = str(page.extract_text())
+                text = str(page.extract_text_lines())
                 # st.write(text)
-            page_texts.append(text.lower())
+            page_texts.append(text)
     
     schedule_pattern = re.compile(r"schedule of activities|Schedule of Activities|Schedule of activities|Schedule Of Activities", re.IGNORECASE)
     intro_pattern = re.compile(r"Introduction", re.IGNORECASE)
@@ -473,15 +473,10 @@ def extract_table_pages(pdf_file):
         if intro_pattern.search(text):
             intro_start_page = i + 1
         if schedule_start_page and intro_start_page:
+            st.write("Start:",schedule_start_page," End:",intro_start_page)
             break
     
     if not schedule_start_page:
-        # st.write("This document does not have the required tables. Overriding and extracting all tables")
-        # if start not None and end not None:
-        #     schedule_start_page = 1
-        #     intro_start_page = len(pdf.pages)
-        #     end_page = intro_start_page
-        # else:
         pdf_document.close()
         return None
     else:

@@ -604,7 +604,7 @@ def process_protocol_pdf_pdfplumber(extracted_pdf_path, system_prompt_pr) -> pd.
                         raw_data = pd.concat((raw_data,pd.DataFrame(table_data)))
                     
                     combined_data = combine_rows(raw_data)
-                    # st.write(combined_data)
+                    st.write(combined_data)
                             
                 if not combined_data.empty:
                     nd = table_ai(combined_data)
@@ -813,7 +813,7 @@ if st.button("Process Documents", type="primary"):
             
             if extracted_pdf_path:
                 protocol_progress = st.empty()
-                protocol_df = process_protocol_pdf_pdfplumber(
+                protocol_df,protocol_df_ai = process_protocol_pdf_pdfplumber(
                     extracted_pdf_path, 
                     system_prompt_pr
                 )
@@ -825,12 +825,13 @@ if st.button("Process Documents", type="primary"):
                     st.session_state.protocol_ready = True
                     
                     try:
+                        st.write(Combined Processed Table')
                         st.dataframe(protocol_df)
                     except Exception as e:
                         dup1 = protocol_df.copy()
                         dup1.columns = [f"{c}_{i}" for i,c in enumerate(dup1.columns)]
-                        # st.write("Table with and without ai postprocessing")
-                        # st.dataframe(dup1)
+                        st.write("Combined Processed Table")
+                        st.dataframe(dup1)
                     
                     # Cleanup protocol temp files
                     if extracted_pdf_path and os.path.exists(extracted_pdf_path):

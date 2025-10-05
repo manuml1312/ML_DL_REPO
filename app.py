@@ -486,7 +486,7 @@ def extract_table_pages(pdf_file):
     schedule_start_page = None
     intro_start_page = None
     
-    for i in range(1, len(page_texts)):
+    for i in range(0, len(page_texts)):
         text = page_texts[i]
         if schedule_pattern.search(text):
             schedule_start_page = i + 1

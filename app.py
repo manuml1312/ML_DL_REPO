@@ -31,7 +31,7 @@ def table_ai(combined_data):
             messages=messages_new,
             response_format={"type": "json_object"},
         )
-        st.write(response.choices[0].message.content)
+        # st.write(response.choices[0].message.content)
         try:
             cleaned_data_json = json.loads(response.choices[0].message.content)
         except Exception as e:
@@ -382,8 +382,7 @@ INPUT ISSUES:
 TRANSFORMATIONS (execute in order):
 
 1. UNMERGE ROWS FIRST
-   - IF a cell contains "\n", it represents TWO merged rows. Cross verify if more cells in the row follow the pattern.
-   - In case of headers in row 0 or others '\n' does not require treatment. But apart from the headers other rows need treatment.
+   - IF a cell contains "\n", it represents TWO merged rows.
    - Split into separate rows: ["value1\nvalue2"] → two rows with ["value1"] and ["value2"]
    - Apply to ALL cells in that row
    - Example: Row with ["Phase A", "V1\nV2", "Day 1\nDay 2"] becomes:

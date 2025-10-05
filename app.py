@@ -374,6 +374,7 @@ system_prompt_pr = """You are a clinical trial data structuring specialist. Clea
 INPUT: A messy JSON where:
 - Multiple visit codes may be packed into single cells (e.g., "V2D-2\nV2D-1 V2D1")
 - Phase names might contain merged visits (e.g., "V16 V17 V18 V19 V20 V21 V22 V23")
+- Two rows might be merged. Check for the value in the first position to determine if they are or not.
 - Timing and window values may be in wrong positions
 - Null/None values should be replaced with empty strings
 - Headers are incomplete - row 0 contains parent headers that span multiple columns, but only the first column of each group has the header text
@@ -414,6 +415,11 @@ REQUIRED TRANSFORMATIONS:
    - Keep header rows (rows 0-1) at top
    - Keep all procedure rows in original sequence
    - Preserve all "X" marks in their correct positions
+   
+CRITICAL: 
+- When splitting merged visits, ensure X marks stay with the correct visit
+- Timing values must match the correct visit
+- The total number of columns increases to accommodate all individual visits
 
 OUTPUT FORMAT:
 Return a clean JSON object with the same structure as input, but with:
@@ -425,11 +431,6 @@ Return a clean JSON object with the same structure as input, but with:
 - Timing/window values correctly aligned
 - All X marks preserved in correct positions
 - None/null replaced with ""
-
-CRITICAL: 
-- When splitting merged visits, ensure X marks stay with the correct visit
-- Timing values must match the correct visit
-- The total number of columns increases to accommodate all individual visits
 
 Return ONLY a valid JSON object with this exact structure:
 {

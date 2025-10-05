@@ -24,30 +24,30 @@ def table_ai(combined_data):
         {'role': 'system', 'content': system_prompt_pr},
         {'role': 'user', 'content': user_prompt_pr}
     ]
-    
-    try:
-        response = client.chat.completions.create(
-            model="o4-mini",  
-            messages=messages_new,
-            response_format={"type": "json_object"},
-        )
-        # st.write(response.choices[0].message.content)
+    with st.spinner('🤖 Sending request to AI model...'):
         try:
-            cleaned_data_json = json.loads(response.choices[0].message.content)
-        except Exception as e:
-            cleaned_data_json = response.choices[0].message.content
+            response = client.chat.completions.create(
+                model="o4-mini",  
+                messages=messages_new,
+                response_format={"type": "json_object"},
+            )
+            with st.spinner('📊 Processing AI response...'):
+                try:
+                    cleaned_data_json = json.loads(response.choices[0].message.content)
+                except Exception as e:
+                    cleaned_data_json = response.choices[0].message.content
+                    
+                if 'data' in cleaned_data_json or cleaned_data_json['data']:
+                    # all_extracted_data=cleaned_data_json['data']
+                    # st.write(pd.DataFrame(cleaned_data_json['data']))
+                    return pd.DataFrame(cleaned_data_json['data'])
+                elif cleaned_data_json:
+                    return pd.DataFrame(cleaned_data_json)
+                else:
+                    st.warning(f"API returned empty data")# for table {table_idx+1} on page {i+1}.")
             
-        if 'data' in cleaned_data_json or cleaned_data_json['data']:
-            # all_extracted_data=cleaned_data_json['data']
-            # st.write(pd.DataFrame(cleaned_data_json['data']))
-            return pd.DataFrame(cleaned_data_json['data'])
-        elif cleaned_data_json:
-            return pd.DataFrame(cleaned_data_json)
-        else:
-            st.warning(f"API returned empty data")# for table {table_idx+1} on page {i+1}.")
-    
-    except Exception as api_e:
-        st.error(f"API error cleaning table: {api_e}")
+        except Exception as api_e:
+            st.error(f"API error cleaning table: {api_e}")
         
 def combine_rows(df3):
     fd = pd.DataFrame()
@@ -612,11 +612,14 @@ def process_protocol_pdf_pdfplumber(extracted_pdf_path, system_prompt_pr) -> pd.
             all_extracted_data = df_ai
             if not all_extracted_data.empty:
                 # Convert to DataFrame
-                # pr_df = pd.DataFrame(all_extracted_data)
-                pr_df = df.copy()
+                pr_df = pd.DataFrame(all_extracted_data)
+                # pr_df = df.copy()
                 
                 if not pr_df.empty:
+                    st.write("With AI Post processing")
                     st.write(pr_df)
+                    st.write("Without AI Post processing")
+                    st.write(df)
                     # Set first row as header
                     pr_df.columns = pr_df.iloc[0]
                     pr_df = pr_df[1:].reset_index(drop=True)

@@ -439,6 +439,13 @@ def extract_table_pages(pdf_file):
     """Extract pages containing Schedule of Activities tables"""
     pdf_document = fitz.open(pdf_file)
     page_texts = []
+    for page_num in range(len(pdf_document)):
+        page = pdf_document[page_num]
+        
+        # Try different extraction methods
+        text = page.get_text("text", sort=True)
+        page_texts.append(text)
+        st.write(text)
 
     # Patterns to find headings
     schedule_pattern = re.compile(r"schedule of activities|Schedule of activities|Schedule of Activities", re.IGNORECASE)
@@ -452,31 +459,13 @@ def extract_table_pages(pdf_file):
     with pdfplumber.open(pdf_file) as pdf:
         for i in range(len(pdf.pages)):
             page = pdf.pages[i]
-            text=''
-            try:
-                text = text + str(page.extract_text(encoding='utf-8'))
-            except Exception as e:
-                # st.write(f"extract_text failed: {e}")
-                pass
-            
+            # text=''
             # try:
-            #     text = text + str(page.extract_text_lines())
+            #     text = text + str(page.extract_text(encoding='utf-8'))
             # except Exception as e:
-            #     # st.write(f"extract_text_lines failed: {e}")
+            #     # st.write(f"extract_text failed: {e}")
             #     pass
             
-            # try:
-            #     text = text + str(page.extract_text_simple())
-            # except Exception as e:
-            #     # st.write(f"extract_text_simple failed: {e}")
-            #     pass
-            
-            # try:
-            #     page = pdf.load_page(i)
-            #     text = text + str(page.get_text())
-            # except Exception as e:
-            #     # st.write(f"get_text failed: {e}")
-            #     pass
             st.write(text)
             page_texts.append(text.replace('\n', ' '))
     

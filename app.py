@@ -541,7 +541,7 @@ def process_protocol_pdf_pdfplumber(extracted_pdf_path, system_prompt_pr) -> pd.
             "vertical_strategy": "lines", "horizontal_strategy": "lines","explicit_vertical_lines": [],
     "explicit_horizontal_lines": [],"snap_tolerance": 300,
     "snap_x_tolerance": 6,
-    "snap_y_tolerance": 5.16,
+    "snap_y_tolerance": 5.8,
     "join_tolerance": 1,
     "join_x_tolerance": 2,
     "join_y_tolerance": 25,

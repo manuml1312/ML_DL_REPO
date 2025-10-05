@@ -369,82 +369,81 @@ def process_crf_docx(docx_path: str) -> List[Dict[str, Any]]:
 
 
 # Function to process the Protocol REF PDF and extract table data using pdfplumber
-system_prompt_pr = """You are a clinical trial data structuring specialist. Clean and restructure the provided Schedule of Activities table JSON.
+system_prompt_pr = """You are a clinical trial table restructuring expert. Transform the provided Schedule of Activities JSON data.
 
-INPUT: A messy JSON where:
-- Multiple visit codes may be packed into single cells (e.g., "V2D-2\nV2D-1 V2D1")
-- Phase names might contain merged visits (e.g., "V16 V17 V18 V19 V20 V21 V22 V23")
-- Two rows might be merged. Cell values divided by '\n' in between are signs of merged rows.
-- Timing and window values may be in wrong positions
-- Null/None values should be replaced with empty strings
-- Headers are incomplete - row 0 contains parent headers that span multiple columns, but only the first column of each group has the header text
+INPUT ISSUES:
+- Merged visits in single cells: "V2D-2\nV2D-1 V2D1" or "V16 V17 V18"
+- Merged rows: cells contain "\n" separating two row values
+- Incomplete headers: row 0 has parent headers only in first column of each group
+- Misaligned timing/window data
+- Null values need replacement
 
-REQUIRED TRANSFORMATIONS:
+TRANSFORMATIONS (execute in order):
 
-1. **Reconstruct Split Headers**
-   - Row 0 contains parent headers that apply to multiple columns beneath them
-   - When you see a format change in visit codes (e.g., V1, V2D-1, V2D1, SxD1, V14), this indicates a new column group starting
-   - The parent header from row 0 should be propagated to ALL columns in that group
-   - Add subscripts (_1, _2, _3, etc.) to distinguish columns under the same parent header
-   - Example: If "Screening Phase" appears in column 2, and columns 2-5 all have visit data before format changes to a new phase, then columns 2-5 should be "Screening Phase_1", "Screening Phase_2", etc.
+1. UNMERGE ROWS FIRST
+   - IF a cell contains "\n", it represents TWO merged rows
+   - Split into separate rows: ["value1\nvalue2"] → two rows with ["value1"] and ["value2"]
+   - Apply to ALL cells in that row
+   - Example: Row with ["Phase A", "V1\nV2", "Day 1\nDay 2"] becomes:
+     * Row 1: ["Phase A", "V1", "Day 1"]
+     * Row 2: ["Phase A", "V2", "Day 2"]
 
-2. **Split Merged Visit Columns**
-   - When a cell contains multiple visits separated by spaces or newlines (e.g., "V2D-2\nV2D-1 V2D1" or "V16 V17 V18")
-   - Create separate columns for EACH visit
-   - Distribute timing, window, and X-mark data appropriately across the new columns
-   - Visit code format changes indicate phase boundaries
+2. RECONSTRUCT HEADERS (row 0)
+   - Row 0 contains parent headers spanning multiple columns
+   - Visit code format changes indicate new phase groups:
+     * V1, V2 → one phase
+     * V2D-1, V2D1 → different phase (D prefix change)
+     * SxD1 → different phase (letter change)
+     * V14, V15 → same phase (sequential)
+   - Propagate parent header to ALL columns in its group with subscripts
+   - Example: If "Screening Phase" in col 2, visits V1-V4 in cols 2-5, output:
+     * Col 2: "Screening Phase_1"
+     * Col 3: "Screening Phase_2"
+     * Col 4: "Screening Phase_3"
+     * Col 5: "Screening Phase_4"
 
-3. **Propagate Phase Names**
-   - When column "0" is null/empty, fill with the phase name from the most recent non-null row above
-   - Examples: "Randomisation (V2) In-house visit", "Treatment Maintenance period Ambulatory visit"
+3. SPLIT MERGED VISITS
+   - When ONE cell contains multiple visits (space or \n separated)
+   - Create NEW columns for each visit
+   - Distribute data from that cell across new columns
+   - Example: Col 5 has "V16 V17 V18" → create Col 5, 6, 7 with "V16", "V17", "V18"
+   - Copy corresponding X marks, timing values to correct new columns
 
-4. **Clean Text**
-   - Remove all "\n" characters from text
-   - Fix spacing issues (e.g., "Withdraw al" → "Withdrawal")
-   - Fix spelling mistakes
-   - Keep protocol section references intact (e.g., "10.1.3", "8.1", "5.1, 5.2")
-   - Replace None/null values with empty strings ""
+4. PROPAGATE PHASE NAMES (column 0)
+   - When column "0" is empty/null, fill with phase name from nearest row above
+   - Keep phase names consistent: "Treatment Maintenance period Ambulatory visit"
 
-5. **Align Timing Data**
-   - Ensure "Timing of Visit (Days)" values align with their respective visit columns
-   - Ensure "Visit Window (Days)" values (±2, ±3, +3) align correctly
-   - Ensure "Timing of Visit (Weeks)" values align correctly
+5. CLEAN TEXT
+   - Remove ALL "\n" from final output
+   - Fix broken words: "Withdraw al" → "Withdrawal"
+   - Fix spellings, keep section numbers: "10.1.3", "8.1"
+   - Replace None/null with ""
 
-6. **Preserve Structure**
-   - Maintain row order exactly as provided
-   - Keep header rows (rows 0-1) at top
-   - Keep all procedure rows in original sequence
-   - Preserve all "X" marks in their correct positions
-7. **Split Merged Rows**
-    - When two rows are merged the cell values have '\n' in between them.
-    - Separate the merged rows into independent rows.
-   
-CRITICAL: 
-- When splitting merged visits, ensure X marks stay with the correct visit
-- Timing values must match the correct visit
-- The total number of columns increases to accommodate all individual visits
+6. ALIGN DATA
+   - "Timing of Visit (Days)" row: align day values under correct visit columns
+   - "Visit Window (Days)" row: align ±2, ±3 under correct visits
+   - X marks: keep with correct visit column
 
-OUTPUT FORMAT:
-Return a clean JSON object with the same structure as input, but with:
-- Each visit in its own numbered column key
-- Sometimes the starting rows might not contain the headers, it means that they are the continued part of the last table. So, do not reorder the rows,keep them as is for all.
-- Parent headers from row 0 propagated with subscripts (_1, _2, _3) to all columns in that phase group
-- Phase names repeated where nulls existed
-- All text cleaned and properly formatted
-- Timing/window values correctly aligned
-- All X marks preserved in correct positions
-- None/null replaced with ""
+CRITICAL RULES:
+- Execute step 1 (unmerge rows) BEFORE other steps
+- Count "\n" to detect merged rows - one "\n" = two rows merged
+- After splitting visits, total columns MUST increase
+- Never reorder rows - output order = input order
+- Preserve ALL X marks in correct positions
 
-Return ONLY a valid JSON object with this exact structure:
-{
-  "data": [your_extracted_data_here]
-}
+OUTPUT:
+Return ONLY this JSON (no markdown, no explanations):
 
-Requirements:
-- Must be valid JSON that works with json.loads()
-- No markdown, no code blocks, no explanations
-- Just the raw JSON object starting with { and ending with }"""
+{"data": [your_extracted_data_here]}
 
+Where:
+- Each inner array is a row
+- First row is reconstructed headers with subscripts
+- Merged rows are split
+- Merged visit columns are expanded
+- All transformations applied
+
+Return only the JSON object."""
 
 def extract_table_pages(pdf_file):
     """Extract pages containing Schedule of Activities tables"""

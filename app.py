@@ -543,25 +543,41 @@ def process_protocol_pdf_pdfplumber(extracted_pdf_path, system_prompt_pr) -> pd.
     all_extracted_data = []
     
     table_settings = {
-        "vertical_strategy": "lines",
-        "horizontal_strategy": "lines",
-        "explicit_vertical_lines": [],
-        "explicit_horizontal_lines": [],
-        "snap_tolerance": 300,
-        "snap_x_tolerance": 6,
-        "snap_y_tolerance": 4 , #5.16,
-        "join_tolerance": 1,
-        "join_x_tolerance": 2,
-        "join_y_tolerance": 3,
-        "edge_min_length": 100,
-        "min_words_vertical": 3,
-        "min_words_horizontal": 1,
-        "intersection_tolerance": 1,
-        "intersection_x_tolerance": 0.4,
-        "intersection_y_tolerance": 2,
-        "text_tolerance": 3,
-        "text_x_tolerance": 5,
-        "text_y_tolerance": 3,
+            "vertical_strategy": "lines", "horizontal_strategy": "lines","explicit_vertical_lines": [],
+    "explicit_horizontal_lines": [],"snap_tolerance": 300,
+    "snap_x_tolerance": 6,
+    "snap_y_tolerance": 5.16,
+    "join_tolerance": 1,
+    "join_x_tolerance": 2,
+    "join_y_tolerance": 25,
+    "edge_min_length": 25,
+    "min_words_vertical": 3,
+    "min_words_horizontal": 1,
+    "intersection_tolerance": 1,
+    "intersection_x_tolerance": 1,
+    "intersection_y_tolerance": 5,
+    "text_tolerance": 3,
+    "text_x_tolerance": 5,
+    "text_y_tolerance": 3,
+        # "vertical_strategy": "lines",
+        # "horizontal_strategy": "lines",
+        # "explicit_vertical_lines": [],
+        # "explicit_horizontal_lines": [],
+        # "snap_tolerance": 300,
+        # "snap_x_tolerance": 6,
+        # "snap_y_tolerance": 4 , #5.16,
+        # "join_tolerance": 1,
+        # "join_x_tolerance": 2,
+        # "join_y_tolerance": 3,
+        # "edge_min_length": 100,
+        # "min_words_vertical": 3,
+        # "min_words_horizontal": 1,
+        # "intersection_tolerance": 1,
+        # "intersection_x_tolerance": 0.4,
+        # "intersection_y_tolerance": 2,
+        # "text_tolerance": 3,
+        # "text_x_tolerance": 5,
+        # "text_y_tolerance": 3,
     }
     
     st.write(f"Processing extracted PDF: {extracted_pdf_path}")
@@ -595,11 +611,11 @@ def process_protocol_pdf_pdfplumber(extracted_pdf_path, system_prompt_pr) -> pd.
                     st.write(combined_data)
                             
                 if not combined_data.empty:
-                    nd = table_ai(combined_data)
-                    st.write('Post processed with AI')
-                    st.write(nd)
+                    # nd = table_ai(combined_data)
+                    # st.write('Post processed with AI')
+                    # st.write(nd)
                     df = pd.concat((df,combined_data)) 
-                    df_ai = pd.concat((df_ai,nd))   
+                    # df_ai = pd.concat((df_ai,nd))   
                 # Update progress
                 progress_percentage = (i + 1) / len(pdf.pages)
                 my_bar.progress(

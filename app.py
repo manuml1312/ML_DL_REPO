@@ -474,14 +474,14 @@ def extract_table_pages(pdf_file):
             break
     
     if not schedule_start_page:
-        # st.write("This document does not have the required tables. If you want to over ride and extract press the below button")
-        # if st.button('Override'):
-        #     schedule_start_page = 1
-        #     intro_start_page = len(pdf.pages)
-        #     end_page = intro_start_page
-        # else:
-        pdf_document.close()
-        return None
+        st.write("This document does not have the required tables. Overriding and extracting all tables")
+        if start not None and end not None:
+            schedule_start_page = 1
+            intro_start_page = len(pdf.pages)
+            end_page = intro_start_page
+        else:
+            pdf_document.close()
+            return None
     else:
         end_page = intro_start_page if intro_start_page else len(pdf.pages)
     
@@ -842,7 +842,27 @@ if st.button("Process Documents", type="primary"):
                 else:
                     st.warning("No Protocol data extracted")
             else:
-                st.error("Could not identify Schedule of Activities pages")
+                if st.button('Override'):
+                    protocol_df=process_protocol_pdfplumber(protocol_path,system_prompt_pr)
+                      
+                    if not protocol_df.empty:
+                        st.success(f"Extracted {len(protocol_df)} rows")
+                        st.session_state.protocol_df = protocol_df
+                        st.session_state.protocol_ready = True
+                        
+                        try:
+                            st.dataframe(protocol_df)
+                        except Exception as e:
+                            dup1 = protocol_df.copy()
+                            dup1.columns = [f"{c}_{i}" for i,c in enumerate(dup1.columns)]
+                            st.write("Table with and without ai postprocessing")
+                            st.dataframe(dup1)
+                        
+                        # Cleanup protocol temp files
+                        if extracted_pdf_path and os.path.exists(extracted_pdf_path):
+                            os.remove(extracted_pdf_path)
+                else:
+                    st.error("Could not identify Schedule of Activities pages")
                 
         except Exception as e:
             st.session_state.protocol_error = str(e)

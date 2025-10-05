@@ -4,7 +4,7 @@ flowchart TD
     B --> C[Initialize Session State]
     C --> D[Display UI: Title, File Uploaders]
     D --> E[User Uploads DOCX & PDF]
-    E --> F[User Clicks "Process Documents"]
+    E --> F[User Clicks 'Process Documents']
     
     F --> G1[Save Uploaded Files Temporarily]
     G1 --> G2[Reset Processing States]
@@ -62,10 +62,3 @@ flowchart TD
     style B8 fill:#b3e6ff
     style B9 fill:#b3e6ff
 ```
-**High-Level Flow Explanation:**
-- The app uses **Streamlit** for the UI and user interaction.
-- Users upload two files: a DOCX (Mock CRF) and a PDF (Protocol REF).
-- The PDF is processed to extract relevant pages and tables with **PyMuPDF (fitz)** and **pdfplumber**; data is cleaned using **OpenAI API**.
-- The DOCX is chunked and parsed with a custom class and **python-docx**, then sent to **OpenAI API** for structured extraction.
-- **pandas** is used for data manipulation throughout.
-- Final results are shown and can be downloaded.

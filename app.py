@@ -454,8 +454,10 @@ def extract_table_pages(pdf_file):
             page = pdf.pages[i]
             try:
                 text = str(page.extract_text_lines())
+                st.write(text)
             except Exception as e:
                 text = page.extract_text()
+                st.write(text)
             page_texts.append(text)
     
     schedule_pattern = re.compile(r"schedule of activities", re.IGNORECASE)
@@ -842,27 +844,7 @@ if st.button("Process Documents", type="primary"):
                 else:
                     st.warning("No Protocol data extracted")
             else:
-                if st.button('Override'):
-                    protocol_df=process_protocol_pdfplumber(protocol_path,system_prompt_pr)
-                      
-                    if not protocol_df.empty:
-                        st.success(f"Extracted {len(protocol_df)} rows")
-                        st.session_state.protocol_df = protocol_df
-                        st.session_state.protocol_ready = True
-                        
-                        try:
-                            st.dataframe(protocol_df)
-                        except Exception as e:
-                            dup1 = protocol_df.copy()
-                            dup1.columns = [f"{c}_{i}" for i,c in enumerate(dup1.columns)]
-                            st.write("Table with and without ai postprocessing")
-                            st.dataframe(dup1)
-                        
-                        # Cleanup protocol temp files
-                        if extracted_pdf_path and os.path.exists(extracted_pdf_path):
-                            os.remove(extracted_pdf_path)
-                else:
-                    st.error("Could not identify Schedule of Activities pages")
+                st.error("Could not identify Schedule of Activities pages")
                 
         except Exception as e:
             st.session_state.protocol_error = str(e)

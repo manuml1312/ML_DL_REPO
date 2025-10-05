@@ -459,11 +459,11 @@ def extract_table_pages(pdf_file):
                 # st.write(f"extract_text failed: {e}")
                 pass
             
-            try:
-                text = text + str(page.extract_text_lines())
-            except Exception as e:
-                # st.write(f"extract_text_lines failed: {e}")
-                pass
+            # try:
+            #     text = text + str(page.extract_text_lines())
+            # except Exception as e:
+            #     # st.write(f"extract_text_lines failed: {e}")
+            #     pass
             
             # try:
             #     text = text + str(page.extract_text_simple())

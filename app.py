@@ -771,8 +771,14 @@ if 'protocol_df' not in st.session_state:
     st.session_state.protocol_df = None
 if 'crf_df' not in st.session_state:
     st.session_state.crf_df = None
-if 'processing_done' not in st.session_state:
-    st.session_state.processing_done = False
+if 'protocol_ready' not in st.session_state:
+    st.session_state.protocol_ready = False
+if 'crf_ready' not in st.session_state:
+    st.session_state.crf_ready = False
+if 'protocol_error' not in st.session_state:
+    st.session_state.protocol_error = None
+if 'crf_error' not in st.session_state:
+    st.session_state.crf_error = None
 
 # --- Streamlit App Layout ---
 st.title("Clinical Document Processor")
@@ -797,100 +803,259 @@ if st.button("Process Documents", type="primary"):
         
         st.success("Files uploaded successfully")
         
-        # Process Protocol
+        # Reset states
+        st.session_state.protocol_ready = False
+        st.session_state.crf_ready = False
+        st.session_state.protocol_error = None
+        st.session_state.crf_error = None
+        
+        # Process Protocol (independent try-except)
         st.subheader("Protocol REF Processing")
-        
-        with st.spinner("Identifying the required tables..."):
-            extracted_pdf_path = extract_table_pages(protocol_path)
-        
-        if extracted_pdf_path:
-            protocol_progress = st.empty()
-            protocol_df = process_protocol_pdf_pdfplumber(
-                extracted_pdf_path, 
-                system_prompt_pr
-            )
-            protocol_progress.empty()
+        try:
+            with st.spinner("Identifying the required tables..."):
+                extracted_pdf_path = extract_table_pages(protocol_path)
             
-            if not protocol_df.empty:
-                st.success(f"Extracted {len(protocol_df)} rows")
-                st.session_state.protocol_df = protocol_df
-                try:
-                    st.dataframe(protocol_df)
-                except Exception as e:
-                    dup1 = protocol_df.copy()
-                    dup1.columns = [f"{c}_{i}" for i,c in enumerate(dup1.columns)]
-                    st.write("Table with and without ai postprocessing")
-                    st.dataframe(dup1)
+            if extracted_pdf_path:
+                protocol_progress = st.empty()
+                protocol_df = process_protocol_pdf_pdfplumber(
+                    extracted_pdf_path, 
+                    system_prompt_pr
+                )
+                protocol_progress.empty()
+                
+                if not protocol_df.empty:
+                    st.success(f"Extracted {len(protocol_df)} rows")
+                    st.session_state.protocol_df = protocol_df
+                    st.session_state.protocol_ready = True
+                    
+                    try:
+                        st.dataframe(protocol_df)
+                    except Exception as e:
+                        dup1 = protocol_df.copy()
+                        dup1.columns = [f"{c}_{i}" for i,c in enumerate(dup1.columns)]
+                        st.write("Table with and without ai postprocessing")
+                        st.dataframe(dup1)
+                    
+                    # Cleanup protocol temp files
+                    if extracted_pdf_path and os.path.exists(extracted_pdf_path):
+                        os.remove(extracted_pdf_path)
+                else:
+                    st.warning("No Protocol data extracted")
             else:
-                st.warning("No Protocol data extracted")
-        else:
-            st.error("Could not identify Schedule of Activities pages")
-            
-        # Process Mock CRF
+                st.error("Could not identify Schedule of Activities pages")
+                
+        except Exception as e:
+            st.session_state.protocol_error = str(e)
+            st.error(f"Protocol processing failed: {e}")
+            st.info("CRF processing will continue independently...")
+        
+        # Process Mock CRF (independent try-except)
         st.subheader("Mock CRF Processing")
-        with st.spinner("Chunking document..."):
-            crf_chunks = process_crf_docx(crf_path)
-            crf_df = ai_extract(crf_chunks, System_prompt)
-            st.info(f"Created {len(crf_chunks)} chunks")
+        try:
+            with st.spinner("Chunking document..."):
+                crf_chunks = process_crf_docx(crf_path)
+                st.info(f"Created {len(crf_chunks)} chunks")
+            
+            with st.spinner("Extracting CRF data..."):
+                crf_df = ai_extract(crf_chunks, System_prompt)
+            
+            if not crf_df.empty:
+                st.success(f"Extracted {crf_df.shape[0]} items")
+                st.session_state.crf_df = crf_df
+                st.session_state.crf_ready = True
+                
+                try:
+                    st.dataframe(crf_df)
+                except Exception as e:
+                    dup2 = crf_df.copy()
+                    dup2.columns = [f"{c}_{i}" for i,c in enumerate(dup2.columns)]
+                    st.dataframe(dup2)
+            else:
+                st.warning("No CRF data extracted")
+                
+        except Exception as e:
+            st.session_state.crf_error = str(e)
+            st.error(f"CRF processing failed: {e}")
         
-        if not crf_df.empty:
-            st.success(f"Extracted {crf_df.shape[0]} items")
-            st.session_state.crf_df = crf_df
-            try:
-                st.dataframe(crf_df)
-            except Exception as e:
-                dup2 = crf_df.copy()
-                dup2.columns = [f"{c}_{i}" for i,c in enumerate(dup2.columns)]
-                st.dataframe(dup2)
-        
-        # Mark processing as done
-        st.session_state.processing_done = True
-        
-        # Cleanup
+        # Cleanup saved files
         for f in [crf_path, protocol_path]:
             if os.path.exists(f):
                 os.remove(f)
-        if extracted_pdf_path and os.path.exists(extracted_pdf_path):
-            os.remove(extracted_pdf_path)
         
-        st.success("Processing complete!")
+        # Summary
+        if st.session_state.protocol_ready or st.session_state.crf_ready:
+            st.success("Processing complete! Download your results below.")
+        else:
+            st.error("Both processes failed. Please check your files and try again.")
 
-# Download section (persists across reruns)
-if st.session_state.processing_done:
-    st.subheader("Download Results")
+# Download section - Protocol (appears as soon as protocol is ready)
+if st.session_state.protocol_ready:
+    st.subheader("Protocol Results Ready")
+    st.download_button(
+        "📥 Download Protocol Data",
+        data=st.session_state.protocol_df.to_csv(index=False).encode('utf-8'),
+        file_name='protocol_extraction.csv',
+        mime='text/csv',
+        type='primary',
+        use_container_width=True
+    )
+elif st.session_state.protocol_error:
+    st.error(f"Protocol processing error: {st.session_state.protocol_error}")
+
+# Download section - CRF (appears as soon as crf is ready)
+if st.session_state.crf_ready:
+    st.subheader("CRF Results Ready")
+    st.download_button(
+        "📥 Download CRF Data",
+        data=st.session_state.crf_df.to_csv(index=False).encode('utf-8'),
+        file_name='crf_extraction.csv',
+        mime='text/csv',
+        type='primary',
+        use_container_width=True
+    )
+elif st.session_state.crf_error:
+    st.error(f"CRF processing error: {st.session_state.crf_error}")
+
+# Reset button (only show if any processing was done)
+if st.session_state.protocol_ready or st.session_state.crf_ready or st.session_state.protocol_error or st.session_state.crf_error:
+    if st.button('🔄 Process New Documents', use_container_width=True):
+        st.session_state.protocol_df = None
+        st.session_state.crf_df = None
+        st.session_state.protocol_ready = False
+        st.session_state.crf_ready = False
+        st.session_state.protocol_error = None
+        st.session_state.crf_error = None
+        
+        # Clean up any temp files
+        for f in ["temp_crf.docx", "temp_protocol.pdf", "Schedule_of_Activities.pdf"]:
+            if os.path.exists(f):
+                os.remove(f)
+        st.rerun()
+# # Initialize session state
+# if 'protocol_df' not in st.session_state:
+#     st.session_state.protocol_df = None
+# if 'crf_df' not in st.session_state:
+#     st.session_state.crf_df = None
+# if 'processing_done' not in st.session_state:
+#     st.session_state.processing_done = False
+
+# # --- Streamlit App Layout ---
+# st.title("Clinical Document Processor")
+# st.write("Upload your Mock CRF (.docx) and Protocol REF (.pdf) documents to extract and process data.")
+
+# # File Uploaders
+# uploaded_crf_file = st.file_uploader("Upload Mock CRF (.docx)", type="docx")
+# uploaded_protocol_file = st.file_uploader("Upload Protocol REF (.pdf)", type="pdf")
+
+# # Process Button
+# if st.button("Process Documents", type="primary"):
+#     if uploaded_crf_file and uploaded_protocol_file:
+        
+#         # Save uploaded files temporarily
+#         crf_path = "temp_crf.docx"
+#         protocol_path = "temp_protocol.pdf"
+        
+#         with open(crf_path, "wb") as f:
+#             f.write(uploaded_crf_file.getbuffer())
+#         with open(protocol_path, "wb") as f:
+#             f.write(uploaded_protocol_file.getbuffer())
+        
+#         st.success("Files uploaded successfully")
+        
+#         # Process Protocol
+#         st.subheader("Protocol REF Processing")
+        
+#         with st.spinner("Identifying the required tables..."):
+#             extracted_pdf_path = extract_table_pages(protocol_path)
+        
+#         if extracted_pdf_path:
+#             protocol_progress = st.empty()
+#             protocol_df = process_protocol_pdf_pdfplumber(
+#                 extracted_pdf_path, 
+#                 system_prompt_pr
+#             )
+#             protocol_progress.empty()
+            
+#             if not protocol_df.empty:
+#                 st.success(f"Extracted {len(protocol_df)} rows")
+#                 st.session_state.protocol_df = protocol_df
+#                 try:
+#                     st.dataframe(protocol_df)
+#                 except Exception as e:
+#                     dup1 = protocol_df.copy()
+#                     dup1.columns = [f"{c}_{i}" for i,c in enumerate(dup1.columns)]
+#                     st.write("Table with and without ai postprocessing")
+#                     st.dataframe(dup1)
+#             else:
+#                 st.warning("No Protocol data extracted")
+#         else:
+#             st.error("Could not identify Schedule of Activities pages")
+            
+#         # Process Mock CRF
+#         st.subheader("Mock CRF Processing")
+#         with st.spinner("Chunking document..."):
+#             crf_chunks = process_crf_docx(crf_path)
+#             crf_df = ai_extract(crf_chunks, System_prompt)
+#             st.info(f"Created {len(crf_chunks)} chunks")
+        
+#         if not crf_df.empty:
+#             st.success(f"Extracted {crf_df.shape[0]} items")
+#             st.session_state.crf_df = crf_df
+#             try:
+#                 st.dataframe(crf_df)
+#             except Exception as e:
+#                 dup2 = crf_df.copy()
+#                 dup2.columns = [f"{c}_{i}" for i,c in enumerate(dup2.columns)]
+#                 st.dataframe(dup2)
+        
+#         # Mark processing as done
+#         st.session_state.processing_done = True
+        
+#         # Cleanup
+#         for f in [crf_path, protocol_path]:
+#             if os.path.exists(f):
+#                 os.remove(f)
+#         if extracted_pdf_path and os.path.exists(extracted_pdf_path):
+#             os.remove(extracted_pdf_path)
+        
+#         st.success("Processing complete!")
+
+# # Download section (persists across reruns)
+# if st.session_state.processing_done:
+#     st.subheader("Download Results")
     
-    col1, col2, col3 = st.columns(3)
+#     col1, col2, col3 = st.columns(3)
     
-    with col1:
-        if st.session_state.protocol_df is not None:
-            st.download_button(
-                "Download Protocol Data",
-                data=st.session_state.protocol_df.to_csv(index=False).encode('utf-8'),
-                file_name='protocol_extraction.csv',
-                mime='text/csv',
-                type='primary'
-            )
+#     with col1:
+#         if st.session_state.protocol_df is not None:
+#             st.download_button(
+#                 "Download Protocol Data",
+#                 data=st.session_state.protocol_df.to_csv(index=False).encode('utf-8'),
+#                 file_name='protocol_extraction.csv',
+#                 mime='text/csv',
+#                 type='primary'
+#             )
     
-    with col2:
-        if st.session_state.crf_df is not None:
-            st.download_button(
-                "Download CRF Data",
-                data=st.session_state.crf_df.to_csv(index=False).encode('utf-8'),
-                file_name='crf_extraction.csv',
-                mime='text/csv',
-                type='primary'
-            )
+#     with col2:
+#         if st.session_state.crf_df is not None:
+#             st.download_button(
+#                 "Download CRF Data",
+#                 data=st.session_state.crf_df.to_csv(index=False).encode('utf-8'),
+#                 file_name='crf_extraction.csv',
+#                 mime='text/csv',
+#                 type='primary'
+#             )
     
-    with col3:
-        if st.button('Process New Documents'):
-            st.session_state.protocol_df = None
-            st.session_state.crf_df = None
-            st.session_state.processing_done = False
-            # Clean up any temp files
-            for f in ["temp_crf.docx", "temp_protocol.pdf", "Schedule_of_Activities.pdf"]:
-                if os.path.exists(f):
-                    os.remove(f)
-            st.rerun()
+#     with col3:
+#         if st.button('Process New Documents'):
+#             st.session_state.protocol_df = None
+#             st.session_state.crf_df = None
+#             st.session_state.processing_done = False
+#             # Clean up any temp files
+#             for f in ["temp_crf.docx", "temp_protocol.pdf", "Schedule_of_Activities.pdf"]:
+#                 if os.path.exists(f):
+#                     os.remove(f)
+#             st.rerun()
 # --- Streamlit App Layout ---
 
 # st.title("Clinical Document Processor")

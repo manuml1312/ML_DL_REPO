@@ -374,7 +374,7 @@ system_prompt_pr = """You are a clinical trial data structuring specialist. Clea
 INPUT: A messy JSON where:
 - Multiple visit codes may be packed into single cells (e.g., "V2D-2\nV2D-1 V2D1")
 - Phase names might contain merged visits (e.g., "V16 V17 V18 V19 V20 V21 V22 V23")
-- Two rows might be merged. Check for the value in the first position to determine if they are or not.
+- Two rows might be merged. Check for the multiple keywords and numbers in the first and second cell of the row or multiple X's in a single cell to determine if they are or not merged.
 - Timing and window values may be in wrong positions
 - Null/None values should be replaced with empty strings
 - Headers are incomplete - row 0 contains parent headers that span multiple columns, but only the first column of each group has the header text
@@ -418,6 +418,7 @@ REQUIRED TRANSFORMATIONS:
    
 CRITICAL: 
 - When splitting merged visits, ensure X marks stay with the correct visit
+- Separate the merged rows into independent rows
 - Timing values must match the correct visit
 - The total number of columns increases to accommodate all individual visits
 

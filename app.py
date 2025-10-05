@@ -437,15 +437,6 @@ Return ONLY the cleaned JSON object, no explanations."""
 
 def extract_table_pages(pdf_file):
     """Extract pages containing Schedule of Activities tables"""
-    pdf_document = fitz.open(pdf_file)
-    page_texts = []
-    for page_num in range(len(pdf_document)):
-        page = pdf_document[page_num]
-        
-        # Try different extraction methods
-        text = page.get_text("text", sort=True)
-        page_texts.append(text)
-        # st.write(text)
 
     # Patterns to find headings
     schedule_pattern = re.compile(r"schedule of activities|Schedule of activities|Schedule of Activities", re.IGNORECASE)
@@ -454,33 +445,24 @@ def extract_table_pages(pdf_file):
     # Find start page
     schedule_start_page = None
     intro_start_page = None
-    
-    # Extract text from all pages
-    # with pdfplumber.open(pdf_file) as pdf:
-    #     for i in range(len(pdf.pages)):
-    #         page = pdf.pages[i]
-    #         # text=''
-    #         # try:
-    #         #     text = text + str(page.extract_text(encoding='utf-8'))
-    #         # except Exception as e:
-    #         #     # st.write(f"extract_text failed: {e}")
-    #         #     pass
-            
-    #         st.write(text)
-    #         page_texts.append(text.replace('\n', ' '))
-    
+
     schedule_pattern = re.compile(r"schedule of activities|Schedule of Activities|Schedule of activities|Schedule Of Activities", re.IGNORECASE)
     intro_pattern = re.compile(r"Introduction", re.IGNORECASE)
     
-    schedule_start_page = None
-    intro_start_page = None
-    
-    for i in range(0, len(page_texts)):
-        text = page_texts[i]
+    # for i in range(0, len(page_texts)):
+    pdf_document = fitz.open(pdf_file)
+    page_texts = []
+    for page_num in range(len(pdf_document)):
+        page = pdf_document[page_num]
+        
+        # Try different extraction methods
+        text = page.get_text("text", sort=True)
+        # page_texts.append(text)
+        # text = page_texts[i]
         if schedule_pattern.search(text):
-            schedule_start_page = i + 1
+            schedule_start_page = page_num + 1
         if intro_pattern.search(text):
-            intro_start_page = i + 1
+            intro_start_page = page_num + 1
         if schedule_start_page and intro_start_page:
             st.write("Start:",schedule_start_page," End:",intro_start_page)
             break

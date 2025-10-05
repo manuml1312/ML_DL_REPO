@@ -454,13 +454,13 @@ def extract_table_pages(pdf_file):
             page = pdf.pages[i]
             try:
                 text = str(page.extract_text_lines())
-                st.write(text)
+                # st.write(text)
             except Exception as e:
-                text = page.extract_text()
-                st.write(text)
-            page_texts.append(text)
+                text = str(page.extract_text())
+                # st.write(text)
+            page_texts.append(text.lower())
     
-    schedule_pattern = re.compile(r"schedule of activities", re.IGNORECASE)
+    schedule_pattern = re.compile(r"schedule of activities|Schedule of Activities|Schedule of activities|Schedule Of Activities", re.IGNORECASE)
     intro_pattern = re.compile(r"Introduction", re.IGNORECASE)
     
     schedule_start_page = None

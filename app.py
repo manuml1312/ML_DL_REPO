@@ -471,7 +471,7 @@ def extract_table_pages(pdf_file):
         pdf_document.close()
         return None
     else:
-        end_page = intro_start_page if intro_start_page else len(pdf.pages)
+        end_page = intro_start_page if intro_start_page else len(pdf_document)
     
     table_settings = {
         "vertical_strategy": "lines",

@@ -813,7 +813,7 @@ if st.button("Process Documents", type="primary"):
             
             if extracted_pdf_path:
                 protocol_progress = st.empty()
-                protocol_df,protocol_df_ai = process_protocol_pdf_pdfplumber(
+                protocol_df = process_protocol_pdf_pdfplumber(
                     extracted_pdf_path, 
                     system_prompt_pr
                 )
@@ -825,7 +825,7 @@ if st.button("Process Documents", type="primary"):
                     st.session_state.protocol_ready = True
                     
                     try:
-                        st.write(Combined Processed Table')
+                        st.write('Combined Processed Table')
                         st.dataframe(protocol_df)
                     except Exception as e:
                         dup1 = protocol_df.copy()

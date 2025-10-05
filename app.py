@@ -452,12 +452,28 @@ def extract_table_pages(pdf_file):
     with pdfplumber.open(pdf_file) as pdf:
         for i in range(len(pdf.pages)):
             page = pdf.pages[i]
+            text=''
             try:
-                text = str(page.extract_text()) 
-                # st.write(text)
+                text = text + str(page.extract_text())
             except Exception as e:
-                text = str(page.extract_text_lines())
-                # st.write(text)
+                st.write(f"extract_text failed: {e}")
+            
+            try:
+                text = text + str(page.extract_text_lines())
+            except Exception as e:
+                st.write(f"extract_text_lines failed: {e}")
+            
+            try:
+                text = text + str(page.extract_text_simple())
+            except Exception as e:
+                st.write(f"extract_text_simple failed: {e}")
+            
+            try:
+                page = pdf.load_page(i)
+                text = text + str(page.get_text())
+            except Exception as e:
+                st.write(f"get_text failed: {e}")
+                
             page_texts.append(text)
     
     schedule_pattern = re.compile(r"schedule of activities|Schedule of Activities|Schedule of activities|Schedule Of Activities", re.IGNORECASE)

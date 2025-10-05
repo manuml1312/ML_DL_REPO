@@ -374,52 +374,40 @@ system_prompt_pr = """You are a clinical trial table restructuring expert. Trans
 INPUT ISSUES:
 - Merged visits in single cells: "V2D-2\nV2D-1 V2D1" or "V16 V17 V18"
 - Merged rows: cells contain "\n" separating two row values
-- Incomplete headers: row 0 has parent headers only in first column of each group
+- Incomplete headers: row 0 has parent headers only in first column of each group. 
+- Sometimes the row 0 might not have the headers, which means its the continuation from the previous table. In such cases conserve the order and do not change it.
 - Misaligned timing/window data
 - Null values need replacement
 
 TRANSFORMATIONS (execute in order):
 
 1. UNMERGE ROWS FIRST
-   - IF a cell contains "\n", it represents TWO merged rows
+   - IF a cell contains "\n", it represents TWO merged rows. Cross verify if more cells in the row follow the pattern.
+   - In case of headers in row 0 or others '\n' does not require treatment. But apart from the headers other rows need treatment.
    - Split into separate rows: ["value1\nvalue2"] → two rows with ["value1"] and ["value2"]
    - Apply to ALL cells in that row
    - Example: Row with ["Phase A", "V1\nV2", "Day 1\nDay 2"] becomes:
      * Row 1: ["Phase A", "V1", "Day 1"]
      * Row 2: ["Phase A", "V2", "Day 2"]
 
-2. RECONSTRUCT HEADERS (row 0)
-   - Row 0 contains parent headers spanning multiple columns
-   - Visit code format changes indicate new phase groups:
-     * V1, V2 → one phase
-     * V2D-1, V2D1 → different phase (D prefix change)
-     * SxD1 → different phase (letter change)
-     * V14, V15 → same phase (sequential)
-   - Propagate parent header to ALL columns in its group with subscripts
-   - Example: If "Screening Phase" in col 2, visits V1-V4 in cols 2-5, output:
-     * Col 2: "Screening Phase_1"
-     * Col 3: "Screening Phase_2"
-     * Col 4: "Screening Phase_3"
-     * Col 5: "Screening Phase_4"
-
-3. SPLIT MERGED VISITS
+2. SPLIT MERGED VISITS
    - When ONE cell contains multiple visits (space or \n separated)
    - Create NEW columns for each visit
    - Distribute data from that cell across new columns
    - Example: Col 5 has "V16 V17 V18" → create Col 5, 6, 7 with "V16", "V17", "V18"
    - Copy corresponding X marks, timing values to correct new columns
 
-4. PROPAGATE PHASE NAMES (column 0)
+3. PROPAGATE PHASE NAMES (column 0)
    - When column "0" is empty/null, fill with phase name from nearest row above
    - Keep phase names consistent: "Treatment Maintenance period Ambulatory visit"
 
-5. CLEAN TEXT
+4. CLEAN TEXT
    - Remove ALL "\n" from final output
    - Fix broken words: "Withdraw al" → "Withdrawal"
    - Fix spellings, keep section numbers: "10.1.3", "8.1"
    - Replace None/null with ""
 
-6. ALIGN DATA
+5. ALIGN DATA
    - "Timing of Visit (Days)" row: align day values under correct visit columns
    - "Visit Window (Days)" row: align ±2, ±3 under correct visits
    - X marks: keep with correct visit column

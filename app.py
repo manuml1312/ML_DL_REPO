@@ -474,14 +474,14 @@ def extract_table_pages(pdf_file):
             break
     
     if not schedule_start_page:
-        st.write("This document does not have the required tables. Overriding and extracting all tables")
-        if start not None and end not None:
-            schedule_start_page = 1
-            intro_start_page = len(pdf.pages)
-            end_page = intro_start_page
-        else:
-            pdf_document.close()
-            return None
+        # st.write("This document does not have the required tables. Overriding and extracting all tables")
+        # if start not None and end not None:
+        #     schedule_start_page = 1
+        #     intro_start_page = len(pdf.pages)
+        #     end_page = intro_start_page
+        # else:
+        pdf_document.close()
+        return None
     else:
         end_page = intro_start_page if intro_start_page else len(pdf.pages)
     

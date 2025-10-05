@@ -465,19 +465,19 @@ def extract_table_pages(pdf_file):
                 # st.write(f"extract_text_lines failed: {e}")
                 pass
             
-            try:
-                text = text + str(page.extract_text_simple())
-            except Exception as e:
-                # st.write(f"extract_text_simple failed: {e}")
-                pass
+            # try:
+            #     text = text + str(page.extract_text_simple())
+            # except Exception as e:
+            #     # st.write(f"extract_text_simple failed: {e}")
+            #     pass
             
-            try:
-                page = pdf.load_page(i)
-                text = text + str(page.get_text())
-            except Exception as e:
-                # st.write(f"get_text failed: {e}")
-                pass
-                
+            # try:
+            #     page = pdf.load_page(i)
+            #     text = text + str(page.get_text())
+            # except Exception as e:
+            #     # st.write(f"get_text failed: {e}")
+            #     pass
+            st.write(text)
             page_texts.append(text.replace('\n', ' '))
     
     schedule_pattern = re.compile(r"schedule of activities|Schedule of Activities|Schedule of activities|Schedule Of Activities", re.IGNORECASE)

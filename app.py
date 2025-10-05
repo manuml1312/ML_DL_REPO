@@ -445,7 +445,7 @@ def extract_table_pages(pdf_file):
         # Try different extraction methods
         text = page.get_text("text", sort=True)
         page_texts.append(text)
-        st.write(text)
+        # st.write(text)
 
     # Patterns to find headings
     schedule_pattern = re.compile(r"schedule of activities|Schedule of activities|Schedule of Activities", re.IGNORECASE)
@@ -456,18 +456,18 @@ def extract_table_pages(pdf_file):
     intro_start_page = None
     
     # Extract text from all pages
-    with pdfplumber.open(pdf_file) as pdf:
-        for i in range(len(pdf.pages)):
-            page = pdf.pages[i]
-            # text=''
-            # try:
-            #     text = text + str(page.extract_text(encoding='utf-8'))
-            # except Exception as e:
-            #     # st.write(f"extract_text failed: {e}")
-            #     pass
+    # with pdfplumber.open(pdf_file) as pdf:
+    #     for i in range(len(pdf.pages)):
+    #         page = pdf.pages[i]
+    #         # text=''
+    #         # try:
+    #         #     text = text + str(page.extract_text(encoding='utf-8'))
+    #         # except Exception as e:
+    #         #     # st.write(f"extract_text failed: {e}")
+    #         #     pass
             
-            st.write(text)
-            page_texts.append(text.replace('\n', ' '))
+    #         st.write(text)
+    #         page_texts.append(text.replace('\n', ' '))
     
     schedule_pattern = re.compile(r"schedule of activities|Schedule of Activities|Schedule of activities|Schedule Of Activities", re.IGNORECASE)
     intro_pattern = re.compile(r"Introduction", re.IGNORECASE)

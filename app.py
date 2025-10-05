@@ -381,13 +381,23 @@ INPUT ISSUES:
 
 TRANSFORMATIONS (execute in order):
 
-1. UNMERGE ROWS FIRST
-   - IF a cell contains "\n", it represents TWO merged rows.
-   - Split into separate rows: ["value1\nvalue2"] → two rows with ["value1"] and ["value2"]
-   - Apply to ALL cells in that row
-   - Example: Row with ["Phase A", "V1\nV2", "Day 1\nDay 2"] becomes:
-     * Row 1: ["Phase A", "V1", "Day 1"]
-     * Row 2: ["Phase A", "V2", "Day 2"]
+1. UNMERGE ROWS - CRITICAL: REPLACE, DON'T DUPLICATE
+   - IF a cell contains "\n", that row represents TWO rows merged
+   - REMOVE the original merged row from output
+   - REPLACE it with TWO separate rows
+   - Split ALL cells in that row at "\n"
+   Example1:
+   INPUT: 
+   Row 3: ["Phase A", "V1\nV2", "Day 1\nDay 2", "X\nX"]
+   OUTPUT (Row 3 is REPLACED by two rows):
+   Row 3: ["Phase A", "V1", "Day 1", "X"]
+   Row 4: ["Phase A", "V2", "Day 2", "X"]
+
+   INPUT:
+   Row 3: ["Time of Visit\nPhase A"."upto -4B\nX"]
+   OUTPUT:
+   Row 3: ["Time of Visit","upto -4B"]
+   Row 4: ["Phase A","X"]
 
 2. SPLIT MERGED VISITS
    - When ONE cell contains multiple visits (space or \n separated)

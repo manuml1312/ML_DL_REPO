@@ -427,12 +427,19 @@ Return a clean JSON object with the same structure as input, but with:
 - None/null replaced with ""
 
 CRITICAL: 
-- Visit code format changes (V1 → V2D-1 → SxD1 → V14) indicate new phase groups for header propagation
 - When splitting merged visits, ensure X marks stay with the correct visit
 - Timing values must match the correct visit
 - The total number of columns increases to accommodate all individual visits
 
-Return ONLY the cleaned JSON object, no explanations."""
+Return ONLY a valid JSON object with this exact structure:
+{
+  "data": [your_extracted_data_here]
+}
+
+Requirements:
+- Must be valid JSON that works with json.loads()
+- No markdown, no code blocks, no explanations
+- Just the raw JSON object starting with { and ending with }"""
 
 
 def extract_table_pages(pdf_file):
@@ -596,14 +603,14 @@ def process_protocol_pdf_pdfplumber(extracted_pdf_path, system_prompt_pr) -> pd.
                         raw_data = pd.concat((raw_data,pd.DataFrame(table_data)))
                     
                     combined_data = combine_rows(raw_data)
-                    st.write(combined_data)
+                    # st.write(combined_data)
                             
                 if not combined_data.empty:
-                    # nd = table_ai(combined_data)
-                    # st.write('Post processed with AI')
-                    # st.write(nd)
+                    nd = table_ai(combined_data)
+                    st.write('Post processed with AI')
+                    st.write(nd)
                     df = pd.concat((df,combined_data)) 
-                    # df_ai = pd.concat((df_ai,nd))   
+                    df_ai = pd.concat((df_ai,nd))   
                 # Update progress
                 progress_percentage = (i + 1) / len(pdf.pages)
                 my_bar.progress(
@@ -612,7 +619,7 @@ def process_protocol_pdf_pdfplumber(extracted_pdf_path, system_prompt_pr) -> pd.
                 )
             
             my_bar.empty()
-            all_extracted_data = df
+            all_extracted_data = df_ai
             if not all_extracted_data.empty:
                 # Convert to DataFrame
                 # pr_df = pd.DataFrame(all_extracted_data)
@@ -821,8 +828,8 @@ if st.button("Process Documents", type="primary"):
                     except Exception as e:
                         dup1 = protocol_df.copy()
                         dup1.columns = [f"{c}_{i}" for i,c in enumerate(dup1.columns)]
-                        st.write("Table with and without ai postprocessing")
-                        st.dataframe(dup1)
+                        # st.write("Table with and without ai postprocessing")
+                        # st.dataframe(dup1)
                     
                     # Cleanup protocol temp files
                     if extracted_pdf_path and os.path.exists(extracted_pdf_path):
@@ -972,7 +979,7 @@ if st.session_state.protocol_ready or st.session_state.crf_ready or st.session_s
 #                 except Exception as e:
 #                     dup1 = protocol_df.copy()
 #                     dup1.columns = [f"{c}_{i}" for i,c in enumerate(dup1.columns)]
-#                     st.write("Table with and without ai postprocessing")
+                    # st.write("Table with and without ai postprocessing")
 #                     st.dataframe(dup1)
 #             else:
 #                 st.warning("No Protocol data extracted")

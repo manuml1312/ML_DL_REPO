@@ -516,8 +516,8 @@ def extract_table_pages(pdf_file):
 
     schedule_pattern = re.compile(r"schedule of activities|Schedule of Activities|Schedule of activities|Schedule Of Activities", re.IGNORECASE)
     intro_pattern = re.compile(r"Introduction", re.IGNORECASE)
-    
-    # for i in range(0, len(page_texts)):
+    index_pattern = re.compile(r"Table of contents",re.IGNORECASE)
+
     pdf_document = fitz.open(pdf_file)
     page_texts = []
     for page_num in range(len(pdf_document)):
@@ -525,14 +525,15 @@ def extract_table_pages(pdf_file):
         
         # Try different extraction methods
         text = page.get_text("text", sort=True)
-        st.write(text)
-        if schedule_pattern.search(text):
-            schedule_start_page = page_num + 1
-        if intro_pattern.search(text):
-            intro_start_page = page_num + 1
-        if schedule_start_page and intro_start_page:
-            st.write("Start:",schedule_start_page," End:",intro_start_page)
-            break
+        if not index_pattern.search(text):
+            # st.write(text)
+            if schedule_pattern.search(text):
+                schedule_start_page = page_num + 1
+            if intro_pattern.search(text):
+                intro_start_page = page_num + 1
+            if schedule_start_page and intro_start_page:
+                st.write("Start:",schedule_start_page," End:",intro_start_page)
+                break
     
     if not schedule_start_page:
         pdf_document.close()

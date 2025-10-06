@@ -377,9 +377,44 @@ INPUT ISSUES:
 - Incomplete headers: row 0 has parent headers only in first column of each group
 - Sometimes row 0 might not have headers (continuation from previous table) - conserve order, do not change
 - Misaligned timing/window data
+- CRITICAL: Row values may be shifted up or down - values that should align with visit codes might be in wrong rows
 - Null values need replacement
 
 TRANSFORMATIONS (execute in order):
+
+0. DETECT AND CORRECT VERTICAL MISALIGNMENT - DO THIS FIRST
+   - Analyze patterns in rows with similar data types (timing values, X marks, numeric values)
+   - Look for patterns where values appear shifted by 1-2 rows up or down
+   - Common indicators of misalignment:
+     * Timing values (numbers, ±X) appearing in wrong rows relative to "Timing of Visit" label
+     * X marks appearing in rows above/below procedure names
+     * Empty cells where X marks should be, with X marks in adjacent rows
+     * Day numbers appearing in "Visit Window" row instead of "Timing of Visit" row
+   
+   Detection algorithm:
+   a) Identify row labels in column 0: "Visit", "Timing of Visit (Days)", "Visit Window (Days)", procedure names
+   b) Check if data in columns 1+ matches expected pattern for that label
+   c) If mismatch detected, check rows immediately above/below for better pattern match
+   d) Shift row values up/down to correct alignment
+   
+   Example of misalignment:
+   INPUT (misaligned):
+   Row 2: ["Timing of Visit (Days)", "", "", ""]
+   Row 3: ["Visit Window (Days)", "1", "8", "15"]  <- Day values in wrong row
+   Row 4: ["Procedure X", "±2", "±3", "±3"]  <- Window values in wrong row
+   
+   OUTPUT (corrected):
+   Row 2: ["Timing of Visit (Days)", "1", "8", "15"]  <- Corrected
+   Row 3: ["Visit Window (Days)", "±2", "±3", "±3"]  <- Corrected
+   Row 4: ["Procedure X", "", "", ""]
+
+   Pattern matching rules:
+   - "Timing of Visit (Days)" row should contain: numbers (1, 8, 15, 22, etc.)
+   - "Visit Window (Days)" row should contain: ±N format (±2, ±3, ±12, etc.) or empty
+   - "Timing of Visit (Weeks)" row should contain: numbers or ranges (12, 13, 02-Oct, etc.)
+   - Procedure rows should contain: X marks, Xp, Xh, Xo, or empty strings
+   
+   If pattern doesn't match, scan 1-2 rows above/below and realign values to correct rows.
 
 1. UNMERGE ROWS - CRITICAL: REPLACE, DON'T DUPLICATE
    - IF a cell contains "\n", that row represents TWO rows merged
@@ -387,41 +422,19 @@ TRANSFORMATIONS (execute in order):
    - REPLACE it with TWO separate rows
    - Split ALL cells in that row at "\n"
    
-   Example 1:
+   Example:
    INPUT: 
    Row 3: ["Phase A", "V1\nV2", "Day 1\nDay 2", "X\nXp"]
    
    OUTPUT (Row 3 is REPLACED by two rows):
    Row 3: ["Phase A", "V1", "Day 1", "X"]
    Row 4: ["Phase A", "V2", "Day 2", "Xp"]
-   
-   Example 2:
-   INPUT:
-   Row 3: ["Time of Visit\nPhase A", "upto -4B\nXh"]
-   
-   OUTPUT:
-   Row 3: ["Time of Visit", "upto -4B"]
-   Row 4: ["Phase A", "Xh"]
-   
-   WRONG OUTPUT (don't keep original):
-   Row 3: ["Phase A", "V1\nV2", "Day 1\nDay 2", "X\nXp"]  ❌
-   Row 4: ["Phase A", "V1", "Day 1", "X"]
-   Row 5: ["Phase A", "V2", "Day 2", "Xp"]
 
 2. SPLIT MERGED VISITS - REPLACE, DON'T DUPLICATE
    - When ONE cell contains multiple visits (space or \n separated)
    - REMOVE that column from output
    - REPLACE with MULTIPLE columns (one per visit)
    - Distribute X marks (including Xp, Xh, Xo variants) and timing to corresponding new columns
-   
-   Example:
-   INPUT:
-   Column 5: ["Visit Phase", "V16 V17 V18", "Day 30", "Xp"]
-   
-   OUTPUT (Column 5 is REPLACED by three columns):
-   Column 5: ["Visit Phase_1", "V16", "Day 30", "Xp"]
-   Column 6: ["Visit Phase_2", "V17", "", ""]
-   Column 7: ["Visit Phase_3", "V18", "", ""]
 
 3. RECONSTRUCT HEADERS (row 0) - ONLY IF HEADERS EXIST
    - If row 0 is blank/continuation, skip this step and preserve as-is
@@ -431,7 +444,7 @@ TRANSFORMATIONS (execute in order):
 
 4. PROPAGATE PHASE NAMES (column 0)
    - When column "0" is empty/null, fill with phase name from nearest row above
-   - Keep phase names consistent: "Treatment Maintenance period Ambulatory visit"
+   - Keep phase names consistent
 
 5. CLEAN TEXT
    - Remove ALL "\n" from final output
@@ -444,51 +457,49 @@ TRANSFORMATIONS (execute in order):
      * "Xh" stays "Xh" (not "X")
      * "Xo" stays "Xo" (not "X")
      * "Xa" stays "Xa" (not "X")
-     * Any "X" followed by lowercase letter(s) must be preserved exactly
 
 6. ALIGN DATA
-   - "Timing of Visit (Days)" row: align day values under correct visit columns
-   - "Visit Window (Days)" row: align ±2, ±3 under correct visits
-   - X marks (including Xp, Xh, Xo, Xa variants): keep with correct visit column
+   - After step 0 corrections, verify:
+   - "Timing of Visit (Days)" row: contains day numbers (1, 8, 15, etc.)
+   - "Visit Window (Days)" row: contains ±N values (±2, ±3, etc.)
+   - X marks in procedure rows: aligned with correct visit columns
 
 CRITICAL RULES:
+- Execute step 0 (detect misalignment) BEFORE all other steps
+- When values are shifted, move entire row of values up/down to match correct label
 - When splitting rows/columns: DELETE original, REPLACE with split versions
-- Execute step 1 (unmerge rows) BEFORE other steps
-- Count "\n" to detect merged rows - one "\n" = two rows merged
-- After splitting, row/column count increases but originals are GONE
-- Never reorder rows (except when replacing merged rows with split rows)
-- PRESERVE ALL X MARK VARIANTS EXACTLY: X, Xp, Xh, Xo, Xa, etc. - DO NOT convert to plain "X"
-- Never keep both merged and unmerged versions
+- Count "\n" to detect merged rows
+- Never reorder rows (except when correcting misalignment or replacing merged rows)
+- PRESERVE ALL X MARK VARIANTS EXACTLY: X, Xp, Xh, Xo, Xa
 
-X MARK PRESERVATION EXAMPLES:
-✓ Correct: "Xp" → "Xp"
-✓ Correct: "Xh" → "Xh"
-✓ Correct: "Xo" → "Xo"
-✗ Wrong: "Xp" → "X"
-✗ Wrong: "Xh" → "X"
+MISALIGNMENT EXAMPLES:
+
+Example 1 - Day values shifted down:
+INPUT (wrong):
+Row 1: ["Visit", "V1", "V2", "V3"]
+Row 2: ["Timing of Visit (Days)", "", "", ""]
+Row 3: ["Visit Window (Days)", "1", "8", "15"]
+
+OUTPUT (corrected):
+Row 1: ["Visit", "V1", "V2", "V3"]
+Row 2: ["Timing of Visit (Days)", "1", "8", "15"]
+Row 3: ["Visit Window (Days)", "", "", ""]
+
+Example 2 - X marks shifted up:
+INPUT (wrong):
+Row 5: ["Medical History", "X", "X", ""]
+Row 6: ["Concomitant Medication", "", "", "X"]
+
+(If pattern analysis shows Medical History should not have X at V1, but Concomitant Medication should)
+
+OUTPUT (corrected):
+Row 5: ["Medical History", "", "", ""]
+Row 6: ["Concomitant Medication", "X", "X", "X"]
 
 OUTPUT:
 Return ONLY this JSON (no markdown, no explanations):
 
 {"data": [[row0_values], [row1_values], [row2_values], ...]}
-
-EXAMPLE TRANSFORMATION:
-
-INPUT:
-{"data": [
-  ["", "Phase A", "", ""],
-  ["Visit", "V1\nV2", "V3", ""],
-  ["Procedure X", "Xp\nXh", "Xo", ""]
-]}
-
-OUTPUT (merged row REPLACED, X variants preserved):
-{"data": [
-  ["", "Phase A_1", "Phase A_2", "Phase A_3"],
-  ["Visit", "V1", "V3", ""],
-  ["Procedure X", "Xp", "Xo", ""],
-  ["Visit", "V2", "", ""],
-  ["Procedure X", "Xh", "", ""]
-]}
 
 Return only the JSON object."""
 
@@ -652,7 +663,8 @@ def process_protocol_pdf_pdfplumber(extracted_pdf_path, system_prompt_pr) -> pd.
                         # Convert to list of lists
                         raw_data = pd.concat((raw_data,pd.DataFrame(table_data)))
                     
-                    combined_data = combine_rows(raw_data)
+                    # combined_data = combine_rows(raw_data)
+                    combined_data = raw_data.copy()
                     st.write(combined_data)
                             
                 if not combined_data.empty:

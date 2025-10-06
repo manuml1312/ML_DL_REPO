@@ -997,7 +997,7 @@ if st.button("Process Documents", type="primary"):
             if not crf_df.empty:
                 st.success(f"Extracted {crf_df.shape[0]} items")
                 source_data = crf_df
-                final_crf=map_data_manually(source_file=source_data,
+                final_crf=map_data_manually(source_data,
                     header_row=4,
                     start_row=5)
                 st.session_state.crf_df = final_crf

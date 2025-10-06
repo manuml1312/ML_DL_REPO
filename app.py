@@ -507,8 +507,8 @@ def extract_table_pages(pdf_file):
     """Extract pages containing Schedule of Activities tables"""
 
     # Patterns to find headings
-    schedule_pattern = re.compile(r"schedule of activities|Schedule of activities|Schedule of Activities", re.IGNORECASE)
-    intro_pattern = re.compile(r"Introduction")
+    # schedule_pattern = re.compile(r"schedule of activities|Schedule of activities|Schedule of Activities", re.IGNORECASE)
+    # intro_pattern = re.compile(r"Introduction")
     
     # Find start page
     schedule_start_page = None
@@ -525,8 +525,7 @@ def extract_table_pages(pdf_file):
         
         # Try different extraction methods
         text = page.get_text("text", sort=True)
-        # page_texts.append(text)
-        # text = page_texts[i]
+        st.write(text)
         if schedule_pattern.search(text):
             schedule_start_page = page_num + 1
         if intro_pattern.search(text):

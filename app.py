@@ -21,7 +21,7 @@ def map_data_manually(source_df, header_row=4, start_row=5):
     """
     MANUAL_COLUMN_MAP = {
     'form_label':'Form Label',
-    'form_type':'Form Type',
+    # 'form_type':'Form Type',
     'item_group':'Item Group (if only one on form, recommend same as Form Label)'	,
     'item_group_repeating':'Item group Repeating'	,
     'item_order':'Item Order',
@@ -819,14 +819,14 @@ EXTRACTION RULES:
 3. Visits: Extract visit schedule (e.g., "V1, V4, V5, V6")
 4. Form Type: "Non-repeating form" or "Repeating form"
 5. Item Group: Logical sections like "Blood", "Urine", "Contraception"
-6. Item Group Repeating: "Yes" if section can repeat, "No" otherwise
+6. Item Group Repeating: "Y" if section can repeat, "N" otherwise
 7. Item Order: Sequential number within form (1, 2, 3...)
 8. Item Label: Exact question text
 9. Item Name: Always "[SDTM Programmer]"
 10. Data Type: "Radio Button", "Numeric", "Text", "Date", "Checkbox"
 11. Codelist: Available options (e.g., "Yes/No", "4-point Scale")
 12. Codelist Name: Logical name for options
-13. Required: "Yes" if marked with asterisk (*), "No" otherwise
+13. Required: "Y" if marked with asterisk (*), "N" otherwise
 
 DATA TYPE MAPPING:
 - Questions with radio options → "Radio Button"

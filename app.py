@@ -15,6 +15,80 @@ api_key = st.secrets["api_key"]
 # For this example, I'll use the key you provided, but using Streamlit secrets is recommended for deployment
 client = OpenAI(api_key=api_key)
 
+def map_data_manually(source_df, header_row=4, start_row=5):
+    """
+    Maps data from a source file to a template using a user-defined manual column map.
+    """
+    MANUAL_COLUMN_MAP = {
+    'form_label':'Form Label',
+    'form_type':'Form Type',
+    'item_group':'Item Group (if only one on form, recommend same as Form Label)'	,
+    'item_group_repeating':'Item group Repeating'	,
+    'item_order':'Item Order',
+    'item_label':'Item Label'	,
+    'item_name':'Item Name (provided by SDTM Programmer, if SDTM linked item)',
+    'data_type':'Data type',
+    'codelist':'Codelist - Choice Labels (If many, can use Codelist Tab)',
+    'codelist_name':'Codelist Name (provided by SDTM programmer)',
+    'required':'Required',
+    # 'items':''
+    }
+    column_map=MANUAL_COLUMN_MAP
+    try:
+        print(f"Reading template headers from row {header_row}...")
+        req_headers = ['Form Label',
+                            'Item Group (if only one on form, recommend same as Form Label)','Item group Repeating',
+                            'Item Order','Item Label',
+                            'Item Name (provided by SDTM Programmer, if SDTM linked item)',
+                            'Data type',
+                            'Codelist - Choice Labels (If many, can use Codelist Tab)','Codelist Name (provided by SDTM programmer)',
+                            'Required']
+        template_headers = ['New or Copied from Study','Form Label','Form Name(provided by SDTM Programmer, if SDTM linked form)',
+                            'Item Group (if only one on form, recommend same as Form Label)','Item group Repeating','Repeat Maximum, if known, else default =50',
+                            'Display format of repeating item group (Grid, read only, form)','Default Data in repeating item group','Item Order','Item Label',
+                            'Item Name (provided by SDTM Programmer, if SDTM linked item)','Progressively displayed?','Controlling Item (item name if known, else item label)',
+                            'Controlling Item Value','','Data type','If text or number, Field Length','If number, Precision (decimal places)',
+                            'Codelist - Choice Labels (If many, can use Codelist Tab)','Codelist Name (provided by SDTM programmer)',
+                            'Choice Code (provided by SDTM programmer)','Codelist: Control Type','If Number, Range: Min Value - Max Value',
+                            "If Date, Query Future Date",'Required','If Required, Open Query when Intentionally Left Blank (form, item)','Notes']																																																																																																																																																															
+        
+        template_file = pd.DataFrame(columns=template_headers)
+        
+        print(f"Required columns in Template: {req_headers}")
+
+        # Read the entire source data file
+        print(f"Reading data from '{source_df}'...")
+        df_source = source_df
+
+        # --- NEW: APPLYING YOUR MANUAL MAP ---
+        print("\nApplying manual column map...")
+
+        # 1. Check if all source columns in the map exist in the CSV file
+        source_columns_in_map = list(column_map.keys())
+        missing_source_cols = set(source_columns_in_map) - set(df_source.columns)
+        if missing_source_cols:
+            print(f"❌ Error: The following columns from your map were not found in the CSV: {missing_source_cols}")
+            return
+
+        # 2. Select only the columns from the source CSV that are in your map
+        df_selected = df_source[source_columns_in_map]
+
+        # 3. Rename the selected columns to match the template headers
+        df_mapped = df_selected.rename(columns=column_map)
+        print(f"Columns after mapping: {df_mapped.columns.tolist()}")
+        template_file[req_headers]=df_mapped
+        
+        # print("\nSaving new file...")
+        print("✅ Process completed successfully!")
+        return template_file
+
+    except FileNotFoundError as e:
+        print(f"❌ Error: File not found. Please check the path: {e.filename}")
+    except KeyError as e:
+        print(f"❌ Error: A column name was not found. It might be a typo in your map or a wrong sheet name: {e}")
+    except Exception as e:
+        print(f"❌ An unexpected error occurred: {e}")
+        
 def table_ai(combined_data):
     combined_data2 = [{'data':combined_data.to_json(orient='records')}]
     user_prompt_pr = f"""INPUT JSON: {combined_data2}
@@ -599,41 +673,41 @@ def process_protocol_pdf_pdfplumber(extracted_pdf_path, system_prompt_pr) -> pd.
     all_extracted_data = []
     
     table_settings = {
-            "vertical_strategy": "lines", "horizontal_strategy": "lines","explicit_vertical_lines": [],
-    "explicit_horizontal_lines": [],"snap_tolerance": 300,
-    "snap_x_tolerance": 6,
-    "snap_y_tolerance": 5.16,
-    "join_tolerance": 1,
-    "join_x_tolerance": 5,
-    "join_y_tolerance": 23,
-    "edge_min_length": 25,
-    "min_words_vertical": 3,
-    "min_words_horizontal": 1,
-    "intersection_tolerance": 1,
-    "intersection_x_tolerance": 1,
-    "intersection_y_tolerance": 5,
-    "text_tolerance": 3,
-    "text_x_tolerance": 5,
-    "text_y_tolerance": 3,
-        # "vertical_strategy": "lines",
-        # "horizontal_strategy": "lines",
-        # "explicit_vertical_lines": [],
-        # "explicit_horizontal_lines": [],
-        # "snap_tolerance": 300,
-        # "snap_x_tolerance": 6,
-        # "snap_y_tolerance": 4 , #5.16,
-        # "join_tolerance": 1,
-        # "join_x_tolerance": 2,
-        # "join_y_tolerance": 3,
-        # "edge_min_length": 100,
-        # "min_words_vertical": 3,
-        # "min_words_horizontal": 1,
-        # "intersection_tolerance": 1,
-        # "intersection_x_tolerance": 0.4,
-        # "intersection_y_tolerance": 2,
-        # "text_tolerance": 3,
-        # "text_x_tolerance": 5,
-        # "text_y_tolerance": 3,
+    #         "vertical_strategy": "lines", "horizontal_strategy": "lines","explicit_vertical_lines": [],
+    # "explicit_horizontal_lines": [],"snap_tolerance": 300,
+    # # "snap_x_tolerance": 6,
+    # # "snap_y_tolerance": 5.16,
+    # # "join_tolerance": 1,
+    # # "join_x_tolerance": 5,
+    # # "join_y_tolerance": 23,
+    # # "edge_min_length": 25,
+    # # "min_words_vertical": 3,
+    # # "min_words_horizontal": 1,
+    # # "intersection_tolerance": 1,
+    # # "intersection_x_tolerance": 1,
+    # # "intersection_y_tolerance": 5,
+    # # "text_tolerance": 3,
+    # # "text_x_tolerance": 5,
+    # # "text_y_tolerance": 3,
+        "vertical_strategy": "lines",
+        "horizontal_strategy": "lines",
+        "explicit_vertical_lines": [],
+        "explicit_horizontal_lines": [],
+        "snap_tolerance": 300,
+        "snap_x_tolerance": 6,
+        "snap_y_tolerance": 5.16,
+        "join_tolerance": 1,
+        "join_x_tolerance": 2,
+        "join_y_tolerance": 3,
+        "edge_min_length": 100,
+        "min_words_vertical": 3,
+        "min_words_horizontal": 1,
+        "intersection_tolerance": 1,
+        "intersection_x_tolerance": 0.4,
+        "intersection_y_tolerance": 2,
+        "text_tolerance": 3,
+        "text_x_tolerance": 5,
+        "text_y_tolerance": 3,
     }
     
     st.write(f"Processing extracted PDF: {extracted_pdf_path}")
@@ -922,15 +996,25 @@ if st.button("Process Documents", type="primary"):
             
             if not crf_df.empty:
                 st.success(f"Extracted {crf_df.shape[0]} items")
-                st.session_state.crf_df = crf_df
+                source_data = crf_df
+                final_crf=map_data_manually(source_file=source_data,
+                    header_row=4,
+                    start_row=5)
+                st.session_state.crf_df = final_crf
                 st.session_state.crf_ready = True
-                
+        
                 try:
+                    st.write('Extracted Values from Document')
                     st.dataframe(crf_df)
+                    st.write('Final Mapped CRF Table')
+                    st.dataframe(final_crf)
                 except Exception as e:
                     dup2 = crf_df.copy()
                     dup2.columns = [f"{c}_{i}" for i,c in enumerate(dup2.columns)]
+                    st.write('Extracted Values from Document')
                     st.dataframe(dup2)
+                    st.write('Final Mapped CRF Table')
+                    st.dataframe(final_crf)
             else:
                 st.warning("No CRF data extracted")
                 
@@ -992,347 +1076,3 @@ if st.session_state.protocol_ready or st.session_state.crf_ready or st.session_s
             if os.path.exists(f):
                 os.remove(f)
         st.rerun()
-# # Initialize session state
-# if 'protocol_df' not in st.session_state:
-#     st.session_state.protocol_df = None
-# if 'crf_df' not in st.session_state:
-#     st.session_state.crf_df = None
-# if 'processing_done' not in st.session_state:
-#     st.session_state.processing_done = False
-
-# # --- Streamlit App Layout ---
-# st.title("Clinical Document Processor")
-# st.write("Upload your Mock CRF (.docx) and Protocol REF (.pdf) documents to extract and process data.")
-
-# # File Uploaders
-# uploaded_crf_file = st.file_uploader("Upload Mock CRF (.docx)", type="docx")
-# uploaded_protocol_file = st.file_uploader("Upload Protocol REF (.pdf)", type="pdf")
-
-# # Process Button
-# if st.button("Process Documents", type="primary"):
-#     if uploaded_crf_file and uploaded_protocol_file:
-        
-#         # Save uploaded files temporarily
-#         crf_path = "temp_crf.docx"
-#         protocol_path = "temp_protocol.pdf"
-        
-#         with open(crf_path, "wb") as f:
-#             f.write(uploaded_crf_file.getbuffer())
-#         with open(protocol_path, "wb") as f:
-#             f.write(uploaded_protocol_file.getbuffer())
-        
-#         st.success("Files uploaded successfully")
-        
-#         # Process Protocol
-#         st.subheader("Protocol REF Processing")
-        
-#         with st.spinner("Identifying the required tables..."):
-#             extracted_pdf_path = extract_table_pages(protocol_path)
-        
-#         if extracted_pdf_path:
-#             protocol_progress = st.empty()
-#             protocol_df = process_protocol_pdf_pdfplumber(
-#                 extracted_pdf_path, 
-#                 system_prompt_pr
-#             )
-#             protocol_progress.empty()
-            
-#             if not protocol_df.empty:
-#                 st.success(f"Extracted {len(protocol_df)} rows")
-#                 st.session_state.protocol_df = protocol_df
-#                 try:
-#                     st.dataframe(protocol_df)
-#                 except Exception as e:
-#                     dup1 = protocol_df.copy()
-#                     dup1.columns = [f"{c}_{i}" for i,c in enumerate(dup1.columns)]
-                    # st.write("Table with and without ai postprocessing")
-#                     st.dataframe(dup1)
-#             else:
-#                 st.warning("No Protocol data extracted")
-#         else:
-#             st.error("Could not identify Schedule of Activities pages")
-            
-#         # Process Mock CRF
-#         st.subheader("Mock CRF Processing")
-#         with st.spinner("Chunking document..."):
-#             crf_chunks = process_crf_docx(crf_path)
-#             crf_df = ai_extract(crf_chunks, System_prompt)
-#             st.info(f"Created {len(crf_chunks)} chunks")
-        
-#         if not crf_df.empty:
-#             st.success(f"Extracted {crf_df.shape[0]} items")
-#             st.session_state.crf_df = crf_df
-#             try:
-#                 st.dataframe(crf_df)
-#             except Exception as e:
-#                 dup2 = crf_df.copy()
-#                 dup2.columns = [f"{c}_{i}" for i,c in enumerate(dup2.columns)]
-#                 st.dataframe(dup2)
-        
-#         # Mark processing as done
-#         st.session_state.processing_done = True
-        
-#         # Cleanup
-#         for f in [crf_path, protocol_path]:
-#             if os.path.exists(f):
-#                 os.remove(f)
-#         if extracted_pdf_path and os.path.exists(extracted_pdf_path):
-#             os.remove(extracted_pdf_path)
-        
-#         st.success("Processing complete!")
-
-# # Download section (persists across reruns)
-# if st.session_state.processing_done:
-#     st.subheader("Download Results")
-    
-#     col1, col2, col3 = st.columns(3)
-    
-#     with col1:
-#         if st.session_state.protocol_df is not None:
-#             st.download_button(
-#                 "Download Protocol Data",
-#                 data=st.session_state.protocol_df.to_csv(index=False).encode('utf-8'),
-#                 file_name='protocol_extraction.csv',
-#                 mime='text/csv',
-#                 type='primary'
-#             )
-    
-#     with col2:
-#         if st.session_state.crf_df is not None:
-#             st.download_button(
-#                 "Download CRF Data",
-#                 data=st.session_state.crf_df.to_csv(index=False).encode('utf-8'),
-#                 file_name='crf_extraction.csv',
-#                 mime='text/csv',
-#                 type='primary'
-#             )
-    
-#     with col3:
-#         if st.button('Process New Documents'):
-#             st.session_state.protocol_df = None
-#             st.session_state.crf_df = None
-#             st.session_state.processing_done = False
-#             # Clean up any temp files
-#             for f in ["temp_crf.docx", "temp_protocol.pdf", "Schedule_of_Activities.pdf"]:
-#                 if os.path.exists(f):
-#                     os.remove(f)
-#             st.rerun()
-# --- Streamlit App Layout ---
-
-# st.title("Clinical Document Processor")
-
-# st.write("Upload your Mock CRF (.docx) and Protocol REF (.pdf) documents to extract and process data.")
-
-# # File Uploaders
-# uploaded_crf_file = st.file_uploader("Upload Mock CRF (.docx)", type="docx")
-# uploaded_protocol_file = st.file_uploader("Upload Protocol REF (.pdf)", type="pdf")
-
-# # st.info("Document with other Content: Used to extract tables from a document combined with other text and tables.")
-# # st.info("Document with only Tables: Use when there are only tables in the document and no other pages.")
-
-# # option = st.selectbox(
-# #     "Select the one with respect to the Protocol Document",
-# #     ("Document with other Content","Document with only Tables"),
-# # )
-# # Process Button
-# # In your main Streamlit code, replace the protocol processing section:
-# _em = st.empty()
-# if st.button("Process Documents", type="primary"):
-#     if uploaded_crf_file and uploaded_protocol_file:
-        
-#         # Save uploaded files temporarily
-#         crf_path = "temp_crf.docx"
-#         protocol_path = "temp_protocol.pdf"
-        
-#         with open(crf_path, "wb") as f:
-#             f.write(uploaded_crf_file.getbuffer())
-#         with open(protocol_path, "wb") as f:
-#             f.write(uploaded_protocol_file.getbuffer())
-        
-#         st.success("Files uploaded successfully")
-        
-#         # Process Protocol - CORRECTED FLOW
-#         st.subheader("Protocol REF Processing")
-        
-#         # Step 1: Extract table pages
-#         with st.spinner("Identifying the required tables..."):
-#             # Pass both the path AND the file object to extract_table_pages
-#             # if option=='Document with other Content':
-#             extracted_pdf_path = extract_table_pages(protocol_path)
-#             # else:
-#             # extracted_pdf_path = protocol_path
-        
-#         if extracted_pdf_path:
-#             # Step 2: Process the extracted tables
-#             protocol_progress = st.empty()
-#             protocol_df = process_protocol_pdf_pdfplumber(
-#                 extracted_pdf_path, 
-#                 system_prompt_pr
-#             )
-#             protocol_progress.empty()
-            
-#             if not protocol_df.empty:
-#                 st.success(f"Extracted {len(protocol_df)} rows")
-#                 try:
-#                     st.dataframe(protocol_df)
-#                 except Exception as e:
-#                     dup1 = protocol_df.copy()
-#                     dup1.columns = [f"{c}_{i}" for i,c in enumerate(dup1.columns)]
-#                     st.write("Table with and without ai postprocessing")
-#                     # table_ai(dup1)
-#                     st.dataframe(dup1)
-                    
-#                 st.download_button(
-#                     "Download Protocol Data",
-#                     data=protocol_df.to_csv(index=False).encode('utf-8'),
-#                     file_name='protocol_extraction.csv',
-#                     mime='text/csv',
-#                     type = 'primary'
-#                 )
-#             else:
-#                 st.warning("No Protocol data extracted")
-            
-#             # if protocol_errors:
-#             #     with st.expander("View Errors"):
-#             #         for error in protocol_errors:
-#             #             st.error(error)
-#         else:
-#             st.error("Could not identify Schedule of Activities pages")
-            
-#         # Process Mock CRF
-#         st.subheader("Mock CRF Processing")
-#         with st.spinner("Chunking document..."):
-#             chunker = DOCXCRFChunker(max_chunk_size=15000, overlap_size=500)
-#             crf_chunks = process_crf_docx(crf_path)
-#             crf_df = ai_extract(crf_chunks,System_prompt)
-#             st.info(f"Created {len(crf_chunks)} chunks")
-        
-#         if not crf_df.empty:
-#             st.success(f"Extracted {crf_df.shape[0]} items")
-#             try:
-#                 st.dataframe(crf_df)
-#             except Exception as e:
-#                 dup2 = crf_df.copy()
-#                 dup2.columns = [f"{c}_{i}" for i,c in enumerate(dup2.columns)]
-#                 st.dataframe(dup2)
-                
-#             st.download_button(
-#                 "Download CRF Data",
-#                 data=crf_df.to_csv(index=False).encode('utf-8'),
-#                 file_name='crf_extraction.csv',
-#                 mime='text/csv',
-#                 type = 'primary'
-#             )
-            
-#         # Cleanup
-#         for f in [crf_path, protocol_path]:
-#             if os.path.exists(f):
-#                 os.remove(f)
-#         if extracted_pdf_path and os.path.exists(extracted_pdf_path):
-#             os.remove(extracted_pdf_path)
-        
-#         st.success("Processing complete!")
-#                 # Clean up temporary files
-#         if st.button('Clear Files History'):
-#             if os.path.exists(crf_path):
-#                 os.remove(crf_path)
-#             if os.path.exists(protocol_path):
-#                  os.remove(protocol_path)
-#             if os.path.exists("Schedule_of_Activities.pdf"):
-#                  os.remove("Schedule_of_Activities.pdf")
-############################################################# old session states
-#         st.success("Processing complete.")
-# if st.button("Process Documents"):
-#     if uploaded_crf_file is not None or uploaded_protocol_file is not None:
-#         st.info("Processing documents...")
-
-#         # Save uploaded files temporarily
-#         crf_filename = "uploaded_crf.docx"
-#         protocol_filename = "uploaded_protocol.pdf"
-
-#         st.subheader("Protocol REF Processing Results (Table Extraction)")
-#         # Process Protocol REF using pdfplumber
-#         if option=="Document with other Content":
-#             extracted_pdf = extract_table_pages(protocol_filename,uploaded_protocol_file)
-#             if extracted_pdf:
-#                 file=''
-#                 protocol_df = process_protocol_pdf_pdfplumber(extracted_pdf,system_prompt_pr)
-#                 st.write(protocol_df)
-#         else:
-#             protocol_df = process_protocol_pdf_pdfplumber(uploaded_protocol_file,system_prompt_pr)
-#             st.write(protocol_df)
-
-#         if protocol_df:
-#             st.write("Extracted and Cleaned Table Data from Protocol REF:")
-#             try:
-#                 st.dataframe(protocol_df)
-#             except Exception as e:
-#                 dup=protocol_df.copy()
-#                 dup.columns = [f"{c}_{i}" for i, c in enumerate(dup.columns)]
-#                 st.dataframe(dup)
-#         # else:
-#         #     st.write("Output Not Available")
-
-
-#             # Provide download link for Protocol data
-#             @st.cache_data
-#             def convert_df_to_excel(df):
-#                 return df.to_csv(index=False)
-
-#             protocol_excel_data = convert_df_to_excel(protocol_df)
-#             st.download_button(
-#                 label="Download Protocol REF Table Data as Excel",
-#                 data=protocol_excel_data,
-#                 file_name='protocol_ref_table_data.csv',
-#                 mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-#             )
-#         else:
-#             st.warning("No tables extracted or processed successfully from the Protocol REF.")
-
-        
-#         with open(crf_filename, "wb") as f:
-#             f.write(uploaded_crf_file.getbuffer())
-
-#         with open(protocol_filename, "wb") as f:
-#             f.write(uploaded_protocol_file.getbuffer())
-
-#         st.success("Files uploaded successfully.")
-
-#         # Process Mock CRF
-#         st.subheader("Mock CRF Processing Results")
-#         crf_chunks = process_crf_docx(crf_filename)
-
-#         if crf_chunks:
-#             crf_extraction_df = ai_extract(crf_chunks, System_prompt)
-#             if crf_extraction_df:
-#                 st.write("Extracted CRF Data:")
-#                 st.dataframe(crf_extraction_df)
-
-#                 # Provide download link for CRF data
-#                 @st.cache_data
-#                 def convert_df_to_excel(df):
-#                     return df.to_csv(index=False)
-
-#                 crf_excel_data = convert_df_to_excel(crf_extraction_df)
-#                 st.download_button(
-#                     label="Download Extracted CRF Data as Excel",
-#                     data=crf_excel_data,
-#                     file_name='extracted_crf_data.csv',
-#                     mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-#                 )
-#         else:
-#              st.warning("No chunks generated from the Mock CRF.")
-
-#         # Clean up temporary files
-#         if st.button('Clear Files History'):
-#             if os.path.exists(crf_filename):
-#                 os.remove(crf_filename)
-#             if os.path.exists(protocol_filename):
-#                  os.remove(protocol_filename)
-#             if os.path.exists("Schedule_of_Activities.pdf"):
-#                  os.remove("Schedule_of_Activities.pdf")
-
-#         st.success("Processing complete.")
-
-#     else:
-#         st.warning("Please upload both Mock CRF and Protocol REF documents to start processing.")

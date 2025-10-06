@@ -369,13 +369,13 @@ def process_crf_docx(docx_path: str) -> List[Dict[str, Any]]:
 
 
 # Function to process the Protocol REF PDF and extract table data using pdfplumber
-system_prompt_pr = """You are a clinical trial table restructuring expert. Transform the provided Schedule of Activities JSON data.
+system_prompt_pr  = """You are a clinical trial table restructuring expert. Transform the provided Schedule of Activities JSON data.
 
 INPUT ISSUES:
 - Merged visits in single cells: "V2D-2\nV2D-1 V2D1" or "V16 V17 V18"
 - Merged rows: cells contain "\n" separating two row values
-- Incomplete headers: row 0 has parent headers only in first column of each group. 
-- Sometimes the row 0 might not have the headers, which means its the continuation from the previous table. In such cases conserve the order and do not change it.
+- Incomplete headers: row 0 has parent headers only in first column of each group
+- Sometimes row 0 might not have headers (continuation from previous table) - conserve order, do not change
 - Misaligned timing/window data
 - Null values need replacement
 
@@ -386,59 +386,109 @@ TRANSFORMATIONS (execute in order):
    - REMOVE the original merged row from output
    - REPLACE it with TWO separate rows
    - Split ALL cells in that row at "\n"
-   Example1:
+   
+   Example 1:
    INPUT: 
-   Row 3: ["Phase A", "V1\nV2", "Day 1\nDay 2", "X\nX"]
+   Row 3: ["Phase A", "V1\nV2", "Day 1\nDay 2", "X\nXp"]
+   
    OUTPUT (Row 3 is REPLACED by two rows):
    Row 3: ["Phase A", "V1", "Day 1", "X"]
-   Row 4: ["Phase A", "V2", "Day 2", "X"]
-
+   Row 4: ["Phase A", "V2", "Day 2", "Xp"]
+   
+   Example 2:
    INPUT:
-   Row 3: ["Time of Visit\nPhase A"."upto -4B\nX"]
+   Row 3: ["Time of Visit\nPhase A", "upto -4B\nXh"]
+   
    OUTPUT:
-   Row 3: ["Time of Visit","upto -4B"]
-   Row 4: ["Phase A","X"]
+   Row 3: ["Time of Visit", "upto -4B"]
+   Row 4: ["Phase A", "Xh"]
+   
+   WRONG OUTPUT (don't keep original):
+   Row 3: ["Phase A", "V1\nV2", "Day 1\nDay 2", "X\nXp"]  ❌
+   Row 4: ["Phase A", "V1", "Day 1", "X"]
+   Row 5: ["Phase A", "V2", "Day 2", "Xp"]
 
-2. SPLIT MERGED VISITS
+2. SPLIT MERGED VISITS - REPLACE, DON'T DUPLICATE
    - When ONE cell contains multiple visits (space or \n separated)
-   - Create NEW columns for each visit
-   - Distribute data from that cell across new columns
-   - Example: Col 5 has "V16 V17 V18" → create Col 5, 6, 7 with "V16", "V17", "V18"
-   - Copy corresponding X marks, timing values to correct new columns
+   - REMOVE that column from output
+   - REPLACE with MULTIPLE columns (one per visit)
+   - Distribute X marks (including Xp, Xh, Xo variants) and timing to corresponding new columns
+   
+   Example:
+   INPUT:
+   Column 5: ["Visit Phase", "V16 V17 V18", "Day 30", "Xp"]
+   
+   OUTPUT (Column 5 is REPLACED by three columns):
+   Column 5: ["Visit Phase_1", "V16", "Day 30", "Xp"]
+   Column 6: ["Visit Phase_2", "V17", "", ""]
+   Column 7: ["Visit Phase_3", "V18", "", ""]
 
-3. PROPAGATE PHASE NAMES (column 0)
+3. RECONSTRUCT HEADERS (row 0) - ONLY IF HEADERS EXIST
+   - If row 0 is blank/continuation, skip this step and preserve as-is
+   - If row 0 contains parent headers spanning multiple columns:
+     * Visit code format changes indicate new phase groups (V1→V2D-1→SxD1→V14)
+     * Propagate parent header to ALL columns in its group with subscripts (_1, _2, _3)
+
+4. PROPAGATE PHASE NAMES (column 0)
    - When column "0" is empty/null, fill with phase name from nearest row above
    - Keep phase names consistent: "Treatment Maintenance period Ambulatory visit"
 
-4. CLEAN TEXT
+5. CLEAN TEXT
    - Remove ALL "\n" from final output
    - Fix broken words: "Withdraw al" → "Withdrawal"
    - Fix spellings, keep section numbers: "10.1.3", "8.1"
    - Replace None/null with ""
+   - CRITICAL: Do NOT modify X mark variants - preserve exactly as-is:
+     * "X" stays "X"
+     * "Xp" stays "Xp" (not "X")
+     * "Xh" stays "Xh" (not "X")
+     * "Xo" stays "Xo" (not "X")
+     * "Xa" stays "Xa" (not "X")
+     * Any "X" followed by lowercase letter(s) must be preserved exactly
 
-5. ALIGN DATA
+6. ALIGN DATA
    - "Timing of Visit (Days)" row: align day values under correct visit columns
    - "Visit Window (Days)" row: align ±2, ±3 under correct visits
-   - X marks: keep with correct visit column
+   - X marks (including Xp, Xh, Xo, Xa variants): keep with correct visit column
 
 CRITICAL RULES:
+- When splitting rows/columns: DELETE original, REPLACE with split versions
 - Execute step 1 (unmerge rows) BEFORE other steps
 - Count "\n" to detect merged rows - one "\n" = two rows merged
-- After splitting visits, total columns MUST increase
-- Never reorder rows - output order = input order
-- Preserve ALL X marks in correct positions
+- After splitting, row/column count increases but originals are GONE
+- Never reorder rows (except when replacing merged rows with split rows)
+- PRESERVE ALL X MARK VARIANTS EXACTLY: X, Xp, Xh, Xo, Xa, etc. - DO NOT convert to plain "X"
+- Never keep both merged and unmerged versions
+
+X MARK PRESERVATION EXAMPLES:
+✓ Correct: "Xp" → "Xp"
+✓ Correct: "Xh" → "Xh"
+✓ Correct: "Xo" → "Xo"
+✗ Wrong: "Xp" → "X"
+✗ Wrong: "Xh" → "X"
 
 OUTPUT:
 Return ONLY this JSON (no markdown, no explanations):
 
-{"data": [your_extracted_data_here]}
+{"data": [[row0_values], [row1_values], [row2_values], ...]}
 
-Where:
-- Each inner array is a row
-- First row is reconstructed headers with subscripts
-- Merged rows are split
-- Merged visit columns are expanded
-- All transformations applied
+EXAMPLE TRANSFORMATION:
+
+INPUT:
+{"data": [
+  ["", "Phase A", "", ""],
+  ["Visit", "V1\nV2", "V3", ""],
+  ["Procedure X", "Xp\nXh", "Xo", ""]
+]}
+
+OUTPUT (merged row REPLACED, X variants preserved):
+{"data": [
+  ["", "Phase A_1", "Phase A_2", "Phase A_3"],
+  ["Visit", "V1", "V3", ""],
+  ["Procedure X", "Xp", "Xo", ""],
+  ["Visit", "V2", "", ""],
+  ["Procedure X", "Xh", "", ""]
+]}
 
 Return only the JSON object."""
 

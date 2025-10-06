@@ -394,35 +394,62 @@ class DOCXCRFChunker:
     
 # Usage example
 
-def combine_chunks(chunks,max_tokens):
-    i,j=0,0
-    updated_chunks=['0']
-    length=len(chunks)
-    while i+1 in range(len(chunks)):
-      if i==0:
-        updated_chunks[j]=chunks[i].copy()
-      else:
-        count_len = updated_chunks[j]['length']+chunks[i]['length'] * 1.25
-        print(count_len)
-        if count_len <1500:
-          updated_chunks[j] = {
-             'chunk_id': f"{chunks[i].get('chunk_id')}-{updated_chunks[j].get('chunk_id')}",
-             'elements': chunks[i].get('elements', []) + updated_chunks[j].get('elements', []),
-             'text': chunks[i].get('text', '') + "\n\n" + updated_chunks[j].get('text', ''),
-             'length': chunks[i].get('length', 0) + updated_chunks[j].get('length', 0),
-             'form_context': chunks[i].get('form_context', '')+'\n\n'+ updated_chunks[j].get('form_context', ''), 
-             'has_tables': chunks[i].get('has_tables', False) or updated_chunks[j].get('has_tables', False),
-             'paragraph_count': chunks[i].get('paragraph_count', 0) + updated_chunks[j].get('paragraph_count', 0),
-             'table_count': chunks[i].get('table_count', 0) + updated_chunks[j].get('table_count', 0),
-             'crf_table_count': chunks[i].get('crf_table_count', 0) + updated_chunks[j].get('crf_table_count', 0),
-             'has_overlap': chunks[i].get('has_overlap', False) or updated_chunks[j].get('has_overlap', False) # Indicate if either had overlap
-          }
-        else:
-          j+=1
-          updated_chunks.append('0')
-          updated_chunks[j]=chunks[i].copy()
+def combine_chunks(chunks, max_tokens=1500):
+    """
+    Combine chunks that fit within max_tokens limit
     
-      i+=1
+    Args:
+        chunks: List of chunk dictionaries
+        max_tokens: Maximum token limit for combined chunks
+    
+    Returns:
+        List of combined chunk dictionaries
+    """
+    if not chunks or len(chunks) == 0:
+        return []
+    
+    updated_chunks = []
+    current_chunk = chunks[0].copy()
+    
+    for i in range(1, len(chunks)):
+        try:
+            next_chunk = chunks[i]
+            
+            # Calculate combined length with 25% overhead
+            combined_length = current_chunk.get('length', 0) + next_chunk.get('length', 0) * 1.25
+            
+            st.write(f"Chunk {i}: Current length: {current_chunk.get('length', 0)}, "
+                  f"Next: {next_chunk.get('length', 0)}, Combined: {combined_length}")
+            
+            if combined_length < max_tokens:
+                # Merge chunks
+                current_chunk = {
+                    'chunk_id': f"{current_chunk.get('chunk_id', '')}-{next_chunk.get('chunk_id', '')}",
+                    'elements': current_chunk.get('elements', []) + next_chunk.get('elements', []),
+                    'text': current_chunk.get('text', '') + "\n\n" + next_chunk.get('text', ''),
+                    'length': current_chunk.get('length', 0) + next_chunk.get('length', 0),
+                    'form_context': current_chunk.get('form_context', '') + '\n\n' + next_chunk.get('form_context', ''), 
+                    'has_tables': current_chunk.get('has_tables', False) or next_chunk.get('has_tables', False),
+                    'paragraph_count': current_chunk.get('paragraph_count', 0) + next_chunk.get('paragraph_count', 0),
+                    'table_count': current_chunk.get('table_count', 0) + next_chunk.get('table_count', 0),
+                    'crf_table_count': current_chunk.get('crf_table_count', 0) + next_chunk.get('crf_table_count', 0),
+                    'has_overlap': current_chunk.get('has_overlap', False) or next_chunk.get('has_overlap', False)
+                }
+            else:
+                # Save current chunk and start new one
+                updated_chunks.append(current_chunk)
+                current_chunk = next_chunk.copy()
+                
+        except Exception as e:
+            st.write(f"⚠️ Error processing chunk {i}: {e}")
+            # On error, save current and continue with next
+            updated_chunks.append(current_chunk)
+            current_chunk = chunks[i].copy()
+    
+    # Don't forget the last chunk!
+    updated_chunks.append(current_chunk)
+    
+    st.write(f"✅ Combined {len(chunks)} chunks into {len(updated_chunks)} chunks")
     return updated_chunks
 def process_crf_docx(docx_path: str) -> List[Dict[str, Any]]:
     """Process a CRF DOCX file and return chunks"""

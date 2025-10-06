@@ -21,6 +21,7 @@ def map_data_manually(source_df, header_row=4, start_row=5):
     """
     MANUAL_COLUMN_MAP = {
     'form_label':'Form Label',
+    'form_code':'
     'item_group':'Item Group (if only one on form, recommend same as Form Label)'	,
     'item_group_repeating':'Item group Repeating'	,
     'item_order':'Item Order',
@@ -404,7 +405,7 @@ def combine_chunks(chunks,max_tokens):
       else:
         count_len = updated_chunks[j]['length']+chunks[i]['length'] * 1.25
         print(count_len)
-        if count_len <3500:
+        if count_len <1500:
           updated_chunks[j] = {
              'chunk_id': f"{chunks[i].get('chunk_id')}-{updated_chunks[j].get('chunk_id')}",
              'elements': chunks[i].get('elements', []) + updated_chunks[j].get('elements', []),
@@ -429,6 +430,7 @@ def process_crf_docx(docx_path: str) -> List[Dict[str, Any]]:
 
     chunker = DOCXCRFChunker(max_chunk_size=15000, overlap_size=500)
     chunks = chunker.extract_and_chunk(docx_path)
+    st.write(chunks)
     chunks = combine_chunks(chunks,1500)
 
     # Print summary (optional, can be displayed in Streamlit)

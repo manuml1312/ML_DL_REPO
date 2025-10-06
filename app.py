@@ -30,13 +30,11 @@ def map_data_manually(source_df, header_row=4, start_row=5):
     'data_type':'Data type',
     'codelist':'Codelist - Choice Labels (If many, can use Codelist Tab)',
     'codelist_name':'Codelist Name (provided by SDTM programmer)',
-    'required':'Required',
-    # 'items':''
-    }
+    'required':'Required'}
     column_map=MANUAL_COLUMN_MAP
     try:
         print(f"Reading template headers from row {header_row}...")
-        req_headers = ['Form Label',
+        req_headers = ['Form Label','Form Type',
                             'Item Group (if only one on form, recommend same as Form Label)','Item group Repeating',
                             'Item Order','Item Label',
                             'Item Name (provided by SDTM Programmer, if SDTM linked item)',

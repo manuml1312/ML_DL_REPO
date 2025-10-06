@@ -21,7 +21,6 @@ def map_data_manually(source_df, header_row=4, start_row=5):
     """
     MANUAL_COLUMN_MAP = {
     'form_label':'Form Label',
-    'form_code':'
     'item_group':'Item Group (if only one on form, recommend same as Form Label)'	,
     'item_group_repeating':'Item group Repeating'	,
     'item_order':'Item Order',

@@ -21,7 +21,6 @@ def map_data_manually(source_df, header_row=4, start_row=5):
     """
     MANUAL_COLUMN_MAP = {
     'form_label':'Form Label',
-    # 'form_type':'Form Type',
     'item_group':'Item Group (if only one on form, recommend same as Form Label)'	,
     'item_group_repeating':'Item group Repeating'	,
     'item_order':'Item Order',
@@ -34,7 +33,7 @@ def map_data_manually(source_df, header_row=4, start_row=5):
     column_map=MANUAL_COLUMN_MAP
     try:
         print(f"Reading template headers from row {header_row}...")
-        req_headers = ['Form Label','Form Type',
+        req_headers = ['Form Label',
                             'Item Group (if only one on form, recommend same as Form Label)','Item group Repeating',
                             'Item Order','Item Label',
                             'Item Name (provided by SDTM Programmer, if SDTM linked item)',

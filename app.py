@@ -418,8 +418,8 @@ def combine_chunks(chunks, max_tokens=1500):
             # Calculate combined length with 25% overhead
             combined_length = current_chunk.get('length', 0) + next_chunk.get('length', 0) * 1.25
             
-            st.write(f"Chunk {i}: Current length: {current_chunk.get('length', 0)}, "
-                  f"Next: {next_chunk.get('length', 0)}, Combined: {combined_length}")
+            # st.write(f"Chunk {i}: Current length: {current_chunk.get('length', 0)}, "
+            #       f"Next: {next_chunk.get('length', 0)}, Combined: {combined_length}")
             
             if combined_length < max_tokens:
                 # Merge chunks
@@ -456,7 +456,7 @@ def process_crf_docx(docx_path: str) -> List[Dict[str, Any]]:
 
     chunker = DOCXCRFChunker(max_chunk_size=15000, overlap_size=500)
     chunks = chunker.extract_and_chunk(docx_path)
-    st.write(chunks)
+    # st.write(chunks)
     chunks = combine_chunks(chunks,1500)
 
     # Print summary (optional, can be displayed in Streamlit)

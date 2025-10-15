@@ -1,143 +1,47 @@
-def map_data_manually(source_df, header_row=4, start_row=5):
+import pandas as pd
+import numpy as np
+import json
+import re
+import os
+import fitz  # PyMuPDF
+import pdfplumber
+import streamlit as st
+from openai import OpenAI
+
+
+class ClinicalDataProcessor:
     """
-    Maps data from a source file to a template using a user-defined manual column map.
+    A comprehensive class for processing clinical trial data including:
+    - PDF table extraction from protocols
+    - Data mapping to templates
+    - AI-powered data cleaning and restructuring
     """
-    MANUAL_COLUMN_MAP = {
-    'form_label':'Form Label',
-    'item_group':'Item Group (if only one on form, recommend same as Form Label)'	,
-    'item_group_repeating':'Item group Repeating'	,
-    'item_order':'Item Order',
-    'item_label':'Item Label'	,
-    'item_name':'Item Name (provided by SDTM Programmer, if SDTM linked item)',
-    'data_type':'Data type',
-    'codelist':'Codelist - Choice Labels (If many, can use Codelist Tab)',
-    'codelist_name':'Codelist Name (provided by SDTM programmer)',
-    'required':'Required'}
-    column_map=MANUAL_COLUMN_MAP
-    try:
-        print(f"Reading template headers from row {header_row}...")
-        req_headers = ['Form Label',
-                            'Item Group (if only one on form, recommend same as Form Label)','Item group Repeating',
-                            'Item Order','Item Label',
-                            'Item Name (provided by SDTM Programmer, if SDTM linked item)',
-                            'Data type',
-                            'Codelist - Choice Labels (If many, can use Codelist Tab)','Codelist Name (provided by SDTM programmer)',
-                            'Required']
-        template_headers = ['New or Copied from Study','Form Label','Form Name(provided by SDTM Programmer, if SDTM linked form)',
-                            'Item Group (if only one on form, recommend same as Form Label)','Item group Repeating','Repeat Maximum, if known, else default =50',
-                            'Display format of repeating item group (Grid, read only, form)','Default Data in repeating item group','Item Order','Item Label',
-                            'Item Name (provided by SDTM Programmer, if SDTM linked item)','Progressively displayed?','Controlling Item (item name if known, else item label)',
-                            'Controlling Item Value','','Data type','If text or number, Field Length','If number, Precision (decimal places)',
-                            'Codelist - Choice Labels (If many, can use Codelist Tab)','Codelist Name (provided by SDTM programmer)',
-                            'Choice Code (provided by SDTM programmer)','Codelist: Control Type','If Number, Range: Min Value - Max Value',
-                            "If Date, Query Future Date",'Required','If Required, Open Query when Intentionally Left Blank (form, item)','Notes']																																																																																																																																																															
-        
-        template_file = pd.DataFrame(columns=template_headers)
-        
-        print(f"Required columns in Template: {req_headers}")
-
-        # Read the entire source data file
-        print(f"Reading data from '{source_df}'...")
-        df_source = source_df
-
-        # --- NEW: APPLYING YOUR MANUAL MAP ---
-        print("\nApplying manual column map...")
-
-        # 1. Check if all source columns in the map exist in the CSV file
-        source_columns_in_map = list(column_map.keys())
-        missing_source_cols = set(source_columns_in_map) - set(df_source.columns)
-        if missing_source_cols:
-            print(f"❌ Error: The following columns from your map were not found in the CSV: {missing_source_cols}")
-            return
-
-        # 2. Select only the columns from the source CSV that are in your map
-        df_selected = df_source[source_columns_in_map]
-
-        # 3. Rename the selected columns to match the template headers
-        df_mapped = df_selected.rename(columns=column_map)
-        print(f"Columns after mapping: {df_mapped.columns.tolist()}")
-        template_file[req_headers]=df_mapped
-        
-        # print("\nSaving new file...")
-        print("✅ Process completed successfully!")
-        return template_file
-
-    except FileNotFoundError as e:
-        print(f"❌ Error: File not found. Please check the path: {e.filename}")
-    except KeyError as e:
-        print(f"❌ Error: A column name was not found. It might be a typo in your map or a wrong sheet name: {e}")
-    except Exception as e:
-        print(f"❌ An unexpected error occurred: {e}")
-        
-def table_ai(combined_data):
-    combined_data2 = [{'data':combined_data.to_json(orient='records')}]
-    user_prompt_pr = f"""INPUT JSON: {combined_data2}
-    Clean and return the structured JSON """
     
-    messages_new = [
-        {'role': 'system', 'content': system_prompt_pr},
-        {'role': 'user', 'content': user_prompt_pr}
-    ]
-    with st.spinner('🤖 Sending request to AI model...'):
-        try:
-            response = client.chat.completions.create(
-                model="o4-mini",  
-                messages=messages_new,
-                response_format={"type": "json_object"},
-            )
-            with st.spinner('📊 Processing AI response...'):
-                try:
-                    cleaned_data_json = json.loads(response.choices[0].message.content)
-                except Exception as e:
-                    cleaned_data_json = response.choices[0].message.content
-                    
-                if 'data' in cleaned_data_json or cleaned_data_json['data']:
-                    # all_extracted_data=cleaned_data_json['data']
-                    # st.write(pd.DataFrame(cleaned_data_json['data']))
-                    return pd.DataFrame(cleaned_data_json['data'])
-                elif cleaned_data_json:
-                    return pd.DataFrame(cleaned_data_json)
-                else:
-                    st.warning(f"API returned empty data")# for table {table_idx+1} on page {i+1}.")
-            
-        except Exception as api_e:
-            st.error(f"API error cleaning table: {api_e}")
+    def __init__(self, openai_client=None):
+        """
+        Initialize the Clinical Data Processor
         
-def combine_rows(df3):
-    fd = pd.DataFrame()
-    df3[0]=df3[0].fillna(method='ffill')
-    groups = df3[0].unique().tolist()
-    for i in range(len(groups)):  # Changed from range(1, len(groups))
-        try:
-            # Get group
-            group_df = df3[df3[0] == groups[i]]
-            df1 = group_df.ffill()
-            df2 = group_df.bfill()
-            df = pd.concat([df1, df2])
-            
-            result = {}
-            for col in df.columns:
-                # print(df[col])
-                values = df[col].dropna()
-                unique_values = values.unique()
-                
-                if len(unique_values) == 0:
-                    result[col] = np.nan
-                elif len(unique_values) == 1:
-                    result[col] = unique_values[0]
-                else:
-                    result[col] = ' '.join(str(v) for v in unique_values)                  
-            # Append result
-            fd = pd.concat([fd, pd.DataFrame([result])], ignore_index=True)
-            
-        except Exception as e:
-            print(f"Error processing group {groups[i]}: {e}")
-            # return pd.DataFrame()
-    return fd.drop_duplicates().fillna('').reset_index(drop=True)
-
-
-
-system_prompt_pr  = """You are a clinical trial table restructuring expert. Transform the provided Schedule of Activities JSON data.
+        Args:
+            openai_client: OpenAI client instance for AI processing
+        """
+        self.client = openai_client
+        
+        # Manual column mapping for data transformation
+        self.manual_column_map = {
+            'form_label': 'Form Label',
+            'item_group': 'Item Group (if only one on form, recommend same as Form Label)',
+            'item_group_repeating': 'Item group Repeating',
+            'item_order': 'Item Order',
+            'item_label': 'Item Label',
+            'item_name': 'Item Name (provided by SDTM Programmer, if SDTM linked item)',
+            'data_type': 'Data type',
+            'codelist': 'Codelist - Choice Labels (If many, can use Codelist Tab)',
+            'codelist_name': 'Codelist Name (provided by SDTM programmer)',
+            'required': 'Required'
+        }
+        
+        # System prompt for AI table processing
+        self.system_prompt_pr = """You are a clinical trial table restructuring expert. Transform the provided Schedule of Activities JSON data.
 
 INPUT ISSUES:
 - Merged visits in single cells: "V2D-2\nV2D-1 V2D1" or "V16 V17 V18"
@@ -271,211 +175,396 @@ Return ONLY this JSON (no markdown, no explanations):
 
 Return only the JSON object."""
 
-def extract_table_pages(pdf_file):
-    """Extract pages containing Schedule of Activities tables"""
-
-    # Patterns to find headings
-    # schedule_pattern = re.compile(r"schedule of activities|Schedule of activities|Schedule of Activities", re.IGNORECASE)
-    # intro_pattern = re.compile(r"Introduction")
-    
-    # Find start page
-    schedule_start_page = None
-    intro_start_page = None
-
-    schedule_pattern = re.compile(r"schedule of activities|Schedule of Activities|Schedule of activities|Schedule Of Activities", re.IGNORECASE)
-    intro_pattern = re.compile(r"Introduction", re.IGNORECASE)
-    index_pattern = re.compile(r"Table of contents",re.IGNORECASE)
-
-    pdf_document = fitz.open(pdf_file)
-    page_texts = []
-    for page_num in range(len(pdf_document)):
-        page = pdf_document[page_num]
+    def map_data_manually(self, source_df, header_row=4, start_row=5):
+        """
+        Maps data from a source file to a template using a user-defined manual column map.
         
-        # Try different extraction methods
-        text = page.get_text("text", sort=True)
-        if not index_pattern.search(text):
-            # st.write(text)
-            if schedule_pattern.search(text):
-                schedule_start_page = page_num + 1
-            if intro_pattern.search(text):
-                intro_start_page = page_num + 1
-            if schedule_start_page and intro_start_page:
-                st.write("Start:",schedule_start_page," End:",intro_start_page)
-                break
-    
-    if not schedule_start_page:
-        pdf_document.close()
-        return None
-    else:
-        end_page = intro_start_page if intro_start_page else len(pdf_document)
-    
-    table_settings = {
-        "vertical_strategy": "lines",
-        "horizontal_strategy": "lines",
-        "snap_tolerance": 300,
-        "edge_min_length": 100,
-    }
-    
-    consecutive_empty_pages = 0
-    max_empty_pages = 2
-
-    with pdfplumber.open(pdf_file) as pdf:
-        for i in range(schedule_start_page - 1, len(pdf.pages)):  # 0-indexed
-            page = pdf.pages[i]
-            tables_on_page = page.extract_tables(table_settings=table_settings)
-            if i==intro_start_page:
-                # end_page=intro_start_page
-                break
-            elif tables_on_page and any(len(table) > 2 for table in tables_on_page):
-                # Found tables with substance (more than just headers)
-                end_page = i + 1  # 1-indexed
-                consecutive_empty_pages = 0
-            else:
-                consecutive_empty_pages += 1
-                if consecutive_empty_pages >= max_empty_pages or not intro_start_page:
-                    break
-    
-    st.write(f"Tables detected from page {schedule_start_page} to page {end_page}")
-    
-    # Extract the identified range
-    output_pdf = fitz.open()
-    output_pdf.insert_pdf(pdf_document, from_page=schedule_start_page - 1, to_page=end_page - 1)
-    
-    if output_pdf.page_count > 0:
-        extracted_pdf_path = "Schedule_of_Activities.pdf"
-        output_pdf.save(extracted_pdf_path)
-        pdf_document.close()
-        
-        st.write(f"Saved {output_pdf.page_count} pages to {extracted_pdf_path}")
-        output_pdf.close()
-        return extracted_pdf_path
-    else:
-        output_pdf.close()
-        pdf_document.close()
-        st.warning("No pages extracted for Schedule of Activities.")
-        return None
-
-
-def process_protocol_pdf_pdfplumber(extracted_pdf_path, system_prompt_pr) -> pd.DataFrame:
-    """Process the extracted PDF to get tables and clean with API"""
-    
-    # Check if file exists
-    if not extracted_pdf_path or not os.path.exists(extracted_pdf_path):
-        st.error(f"PDF file not found at path: {extracted_pdf_path}")
-        return pd.DataFrame()
-    
-    all_extracted_data = []
-    
-    table_settings = {
-    #         "vertical_strategy": "lines", "horizontal_strategy": "lines","explicit_vertical_lines": [],
-    # "explicit_horizontal_lines": [],"snap_tolerance": 300,
-    # # "snap_x_tolerance": 6,
-    # # "snap_y_tolerance": 5.16,
-    # # "join_tolerance": 1,
-    # # "join_x_tolerance": 5,
-    # # "join_y_tolerance": 23,
-    # # "edge_min_length": 25,
-    # # "min_words_vertical": 3,
-    # # "min_words_horizontal": 1,
-    # # "intersection_tolerance": 1,
-    # # "intersection_x_tolerance": 1,
-    # # "intersection_y_tolerance": 5,
-    # # "text_tolerance": 3,
-    # # "text_x_tolerance": 5,
-    # # "text_y_tolerance": 3,
-        "vertical_strategy": "lines",
-        "horizontal_strategy": "lines",
-        "explicit_vertical_lines": [],
-        "explicit_horizontal_lines": [],
-        "snap_tolerance": 300,
-        "snap_x_tolerance": 6,
-        "snap_y_tolerance": 5.16,
-        "join_tolerance": 1,
-        "join_x_tolerance": 2,
-        "join_y_tolerance": 3,
-        "edge_min_length": 100,
-        "min_words_vertical": 3,
-        "min_words_horizontal": 1,
-        "intersection_tolerance": 1,
-        "intersection_x_tolerance": 0.4,
-        "intersection_y_tolerance": 2,
-        "text_tolerance": 3,
-        "text_x_tolerance": 5,
-        "text_y_tolerance": 3,
-    }
-    
-    st.write(f"Processing extracted PDF: {extracted_pdf_path}")
-    
-    try:
-        with pdfplumber.open(extracted_pdf_path) as pdf:
-            st.write(f"Opened PDF with {len(pdf.pages)} pages for table extraction.")
+        Args:
+            source_df: Source DataFrame to map
+            header_row: Row number for headers (default: 4)
+            start_row: Row number to start data from (default: 5)
             
-            progress_text = "Extracting tables from Protocol REF PDF..."
-            my_bar = st.progress(0, text=progress_text)
-            df = pd.DataFrame()
-            df_ai = pd.DataFrame()
-            combined_data = pd.DataFrame()
-            for i in range(len(pdf.pages)):
-                page = pdf.pages[i]
-                st.write(f"Processing page {i+1}...")
+        Returns:
+            DataFrame with mapped columns
+        """
+        try:
+            print(f"Reading template headers from row {header_row}...")
+            
+            req_headers = [
+                'Form Label',
+                'Item Group (if only one on form, recommend same as Form Label)',
+                'Item group Repeating',
+                'Item Order',
+                'Item Label',
+                'Item Name (provided by SDTM Programmer, if SDTM linked item)',
+                'Data type',
+                'Codelist - Choice Labels (If many, can use Codelist Tab)',
+                'Codelist Name (provided by SDTM programmer)',
+                'Required'
+            ]
+            
+            template_headers = [
+                'New or Copied from Study',
+                'Form Label',
+                'Form Name(provided by SDTM Programmer, if SDTM linked form)',
+                'Item Group (if only one on form, recommend same as Form Label)',
+                'Item group Repeating',
+                'Repeat Maximum, if known, else default =50',
+                'Display format of repeating item group (Grid, read only, form)',
+                'Default Data in repeating item group',
+                'Item Order',
+                'Item Label',
+                'Item Name (provided by SDTM Programmer, if SDTM linked item)',
+                'Progressively displayed?',
+                'Controlling Item (item name if known, else item label)',
+                'Controlling Item Value',
+                '',
+                'Data type',
+                'If text or number, Field Length',
+                'If number, Precision (decimal places)',
+                'Codelist - Choice Labels (If many, can use Codelist Tab)',
+                'Codelist Name (provided by SDTM programmer)',
+                'Choice Code (provided by SDTM programmer)',
+                'Codelist: Control Type',
+                'If Number, Range: Min Value - Max Value',
+                "If Date, Query Future Date",
+                'Required',
+                'If Required, Open Query when Intentionally Left Blank (form, item)',
+                'Notes'
+            ]
+            
+            template_file = pd.DataFrame(columns=template_headers)
+            
+            print(f"Required columns in Template: {req_headers}")
+            print(f"Reading data from source DataFrame...")
+            
+            df_source = source_df
+            
+            # Apply manual column mapping
+            print("\nApplying manual column map...")
+            
+            # Check if all source columns in the map exist
+            source_columns_in_map = list(self.manual_column_map.keys())
+            missing_source_cols = set(source_columns_in_map) - set(df_source.columns)
+            
+            if missing_source_cols:
+                print(f"❌ Error: The following columns from your map were not found in the DataFrame: {missing_source_cols}")
+                return pd.DataFrame()
+            
+            # Select only the columns from source that are in the map
+            df_selected = df_source[source_columns_in_map]
+            
+            # Rename the selected columns to match template headers
+            df_mapped = df_selected.rename(columns=self.manual_column_map)
+            print(f"Columns after mapping: {df_mapped.columns.tolist()}")
+            
+            template_file[req_headers] = df_mapped
+            
+            print("✅ Process completed successfully!")
+            return template_file
+            
+        except KeyError as e:
+            print(f"❌ Error: A column name was not found: {e}")
+            return pd.DataFrame()
+        except Exception as e:
+            print(f"❌ An unexpected error occurred: {e}")
+            return pd.DataFrame()
+
+    def table_ai(self, combined_data):
+        """
+        Clean and restructure table data using AI
+        
+        Args:
+            combined_data: DataFrame containing raw table data
+            
+        Returns:
+            DataFrame with cleaned and structured data
+        """
+        if not self.client:
+            st.error("OpenAI client not initialized. Please provide API client.")
+            return pd.DataFrame()
+            
+        combined_data2 = [{'data': combined_data.to_json(orient='records')}]
+        user_prompt_pr = f"""INPUT JSON: {combined_data2}
+Clean and return the structured JSON """
+        
+        messages_new = [
+            {'role': 'system', 'content': self.system_prompt_pr},
+            {'role': 'user', 'content': user_prompt_pr}
+        ]
+        
+        with st.spinner('🤖 Sending request to AI model...'):
+            try:
+                response = self.client.chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=messages_new,
+                    response_format={"type": "json_object"},
+                )
                 
-                # Extract tables
+                with st.spinner('📊 Processing AI response...'):
+                    try:
+                        cleaned_data_json = json.loads(response.choices[0].message.content)
+                    except Exception as e:
+                        st.error(f"Error parsing JSON response: {e}")
+                        cleaned_data_json = response.choices[0].message.content
+                        
+                    if 'data' in cleaned_data_json and cleaned_data_json['data']:
+                        return pd.DataFrame(cleaned_data_json['data'])
+                    elif cleaned_data_json:
+                        return pd.DataFrame(cleaned_data_json)
+                    else:
+                        st.warning("API returned empty data")
+                        return pd.DataFrame()
+                
+            except Exception as api_e:
+                st.error(f"API error cleaning table: {api_e}")
+                return pd.DataFrame()
+
+    def combine_rows(self, df3):
+        """
+        Combine rows with forward and backward fill
+        
+        Args:
+            df3: DataFrame to process
+            
+        Returns:
+            DataFrame with combined rows
+        """
+        fd = pd.DataFrame()
+        
+        # Forward fill the first column
+        df3[0] = df3[0].fillna(method='ffill')
+        groups = df3[0].unique().tolist()
+        
+        for i in range(len(groups)):
+            try:
+                # Get group
+                group_df = df3[df3[0] == groups[i]]
+                df1 = group_df.ffill()
+                df2 = group_df.bfill()
+                df = pd.concat([df1, df2])
+                
+                result = {}
+                for col in df.columns:
+                    values = df[col].dropna()
+                    unique_values = values.unique()
+                    
+                    if len(unique_values) == 0:
+                        result[col] = np.nan
+                    elif len(unique_values) == 1:
+                        result[col] = unique_values[0]
+                    else:
+                        result[col] = ' '.join(str(v) for v in unique_values)
+                
+                # Append result
+                fd = pd.concat([fd, pd.DataFrame([result])], ignore_index=True)
+                
+            except Exception as e:
+                print(f"Error processing group {groups[i]}: {e}")
+                continue
+        
+        return fd.drop_duplicates().fillna('').reset_index(drop=True)
+
+    def extract_table_pages(self, pdf_file):
+        """
+        Extract pages containing Schedule of Activities tables
+        
+        Args:
+            pdf_file: Path to PDF file or file object
+            
+        Returns:
+            Path to extracted PDF or None if extraction fails
+        """
+        # Patterns to find headings
+        schedule_pattern = re.compile(
+            r"schedule of activities|Schedule of Activities|Schedule of activities|Schedule Of Activities",
+            re.IGNORECASE
+        )
+        intro_pattern = re.compile(r"Introduction", re.IGNORECASE)
+        index_pattern = re.compile(r"Table of contents", re.IGNORECASE)
+        
+        # Find start page
+        schedule_start_page = None
+        intro_start_page = None
+        
+        pdf_document = fitz.open(pdf_file)
+        
+        for page_num in range(len(pdf_document)):
+            page = pdf_document[page_num]
+            text = page.get_text("text", sort=True)
+            
+            if not index_pattern.search(text):
+                if schedule_pattern.search(text):
+                    schedule_start_page = page_num + 1
+                if intro_pattern.search(text):
+                    intro_start_page = page_num + 1
+                if schedule_start_page and intro_start_page:
+                    st.write(f"Start: {schedule_start_page}, End: {intro_start_page}")
+                    break
+        
+        if not schedule_start_page:
+            pdf_document.close()
+            st.warning("Could not find 'Schedule of Activities' section in the PDF.")
+            return None
+        
+        end_page = intro_start_page if intro_start_page else len(pdf_document)
+        
+        table_settings = {
+            "vertical_strategy": "lines",
+            "horizontal_strategy": "lines",
+            "snap_tolerance": 300,
+            "edge_min_length": 100,
+        }
+        
+        consecutive_empty_pages = 0
+        max_empty_pages = 2
+        
+        with pdfplumber.open(pdf_file) as pdf:
+            for i in range(schedule_start_page - 1, len(pdf.pages)):
+                page = pdf.pages[i]
                 tables_on_page = page.extract_tables(table_settings=table_settings)
                 
-                if tables_on_page:
-                    st.write(f"Found {len(tables_on_page)} tables on page {i+1}.")
-                    raw_data = pd.DataFrame()
-                    for table_idx, table_data in enumerate(tables_on_page):
-                        if not table_data or len(table_data) < 2:
-                            continue
-                        # Convert to list of lists
-                        raw_data = pd.concat((raw_data,pd.DataFrame(table_data)))
-                    
-                    # combined_data = combine_rows(raw_data)
-                    combined_data = raw_data.copy()
-                    st.write(combined_data)
-                            
-                if not combined_data.empty:
-                    nd = table_ai(combined_data)
-                    st.write('Post processed with AI')
-                    st.write(nd)
-                    df = pd.concat((df,combined_data)) 
-                    df_ai = pd.concat((df_ai,nd))   
-                # Update progress
-                progress_percentage = (i + 1) / len(pdf.pages)
-                my_bar.progress(
-                    progress_percentage,
-                    text=f"Extracting tables from Protocol REF PDF (page {i+1}/{len(pdf.pages)})..."
-                )
+                if i == intro_start_page - 1:
+                    break
+                elif tables_on_page and any(len(table) > 2 for table in tables_on_page):
+                    end_page = i + 1
+                    consecutive_empty_pages = 0
+                else:
+                    consecutive_empty_pages += 1
+                    if consecutive_empty_pages >= max_empty_pages or not intro_start_page:
+                        break
+        
+        st.write(f"Tables detected from page {schedule_start_page} to page {end_page}")
+        
+        # Extract the identified range
+        output_pdf = fitz.open()
+        output_pdf.insert_pdf(pdf_document, from_page=schedule_start_page - 1, to_page=end_page - 1)
+        
+        if output_pdf.page_count > 0:
+            extracted_pdf_path = "Schedule_of_Activities.pdf"
+            output_pdf.save(extracted_pdf_path)
+            pdf_document.close()
             
-            my_bar.empty()
-            all_extracted_data = df_ai
-            if not all_extracted_data.empty:
-                # Convert to DataFrame
-                pr_df = pd.DataFrame(all_extracted_data)
-                # pr_df = df.copy()
+            st.write(f"Saved {output_pdf.page_count} pages to {extracted_pdf_path}")
+            output_pdf.close()
+            return extracted_pdf_path
+        else:
+            output_pdf.close()
+            pdf_document.close()
+            st.warning("No pages extracted for Schedule of Activities.")
+            return None
+
+    def process_protocol_pdf_pdfplumber(self, extracted_pdf_path) -> pd.DataFrame:
+        """
+        Process the extracted PDF to get tables and clean with API
+        
+        Args:
+            extracted_pdf_path: Path to extracted PDF file
+            
+        Returns:
+            DataFrame containing processed table data
+        """
+        # Check if file exists
+        if not extracted_pdf_path or not os.path.exists(extracted_pdf_path):
+            st.error(f"PDF file not found at path: {extracted_pdf_path}")
+            return pd.DataFrame()
+        
+        table_settings = {
+            "vertical_strategy": "lines",
+            "horizontal_strategy": "lines",
+            "explicit_vertical_lines": [],
+            "explicit_horizontal_lines": [],
+            "snap_tolerance": 300,
+            "snap_x_tolerance": 6,
+            "snap_y_tolerance": 5.16,
+            "join_tolerance": 1,
+            "join_x_tolerance": 2,
+            "join_y_tolerance": 3,
+            "edge_min_length": 100,
+            "min_words_vertical": 3,
+            "min_words_horizontal": 1,
+            "intersection_tolerance": 1,
+            "intersection_x_tolerance": 0.4,
+            "intersection_y_tolerance": 2,
+            "text_tolerance": 3,
+            "text_x_tolerance": 5,
+            "text_y_tolerance": 3,
+        }
+        
+        st.write(f"Processing extracted PDF: {extracted_pdf_path}")
+        
+        try:
+            with pdfplumber.open(extracted_pdf_path) as pdf:
+                st.write(f"Opened PDF with {len(pdf.pages)} pages for table extraction.")
                 
-                if not pr_df.empty:
-                    st.write("With AI Post processing")
-                    st.write(pr_df)
-                    st.write("Without AI Post processing")
-                    st.write(df)
-                    # Set first row as header
-                    pr_df.columns = pr_df.iloc[0]
-                    pr_df = pr_df[1:].reset_index(drop=True)
+                progress_text = "Extracting tables from Protocol REF PDF..."
+                my_bar = st.progress(0, text=progress_text)
+                
+                df = pd.DataFrame()
+                df_ai = pd.DataFrame()
+                
+                for i in range(len(pdf.pages)):
+                    page = pdf.pages[i]
+                    st.write(f"Processing page {i+1}...")
                     
-                    # Drop empty columns
-                    pr_df = pr_df.dropna(axis=1, how='all')
+                    # Extract tables
+                    tables_on_page = page.extract_tables(table_settings=table_settings)
                     
-                    # pr_data = [{'data':pr_df.to_json(orient='records')}]
-                    return pr_df
-            else:
-                st.warning("No tables extracted from the Protocol REF PDF.")
-                return pd.DataFrame()
-    
-    except FileNotFoundError:
-        st.error(f"File not found: {extracted_pdf_path}")
-        return pd.DataFrame()
-    except Exception as e:
-        st.error(f"Error processing Protocol REF PDF: {e}")
-        return pd.DataFrame()
+                    if tables_on_page:
+                        st.write(f"Found {len(tables_on_page)} tables on page {i+1}.")
+                        raw_data = pd.DataFrame()
+                        
+                        for table_idx, table_data in enumerate(tables_on_page):
+                            if not table_data or len(table_data) < 2:
+                                continue
+                            # Convert to DataFrame and concatenate
+                            raw_data = pd.concat([raw_data, pd.DataFrame(table_data)])
+                        
+                        combined_data = raw_data.copy()
+                        st.write(combined_data)
+                        
+                        # Process with AI
+                        if not combined_data.empty:
+                            nd = self.table_ai(combined_data)
+                            st.write('Post processed with AI')
+                            st.write(nd)
+                            df = pd.concat([df, combined_data])
+                            df_ai = pd.concat([df_ai, nd])
+                    
+                    # Update progress
+                    progress_percentage = (i + 1) / len(pdf.pages)
+                    my_bar.progress(
+                        progress_percentage,
+                        text=f"Extracting tables from Protocol REF PDF (page {i+1}/{len(pdf.pages)})..."
+                    )
+                
+                my_bar.empty()
+                
+                if not df_ai.empty:
+                    pr_df = pd.DataFrame(df_ai)
+                    
+                    if not pr_df.empty:
+                        st.write("With AI Post processing")
+                        st.write(pr_df)
+                        st.write("Without AI Post processing")
+                        st.write(df)
+                        
+                        # Set first row as header
+                        pr_df.columns = pr_df.iloc[0]
+                        pr_df = pr_df[1:].reset_index(drop=True)
+                        
+                        # Drop empty columns
+                        pr_df = pr_df.dropna(axis=1, how='all')
+                        
+                        return pr_df
+                else:
+                    st.warning("No tables extracted from the Protocol REF PDF.")
+                    return pd.DataFrame()
+        
+        except FileNotFoundError:
+            st.error(f"File not found: {extracted_pdf_path}")
+            return pd.DataFrame()
+        except Exception as e:
+            st.error(f"Error processing Protocol REF PDF: {e}")
+            return pd.DataFrame()
+

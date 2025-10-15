@@ -394,7 +394,7 @@ Clean and return the structured JSON """
                     # PRIMARY ATTEMPT: Use your specified settings
                     tables_on_page = None
                     strategy_used = "Primary (Custom pdfplumber settings)"
-                    st.write('extracting')
+                    
                     try:
                         tables_on_page = page.extract_tables(table_settings=self.primary_table_settings)
                         

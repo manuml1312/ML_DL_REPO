@@ -517,8 +517,8 @@ Return only the JSON object."""
 
 def extract_table_pages(pdf_file):
     """Extract Schedule of Activities pages"""
-    st.write(f"[PROTOCOL] Extracting table pages from {pdf_file}")
-    print(f"[PROTOCOL] Extracting table pages from {pdf_file}")
+    # st.write(f"[PROTOCOL] Extracting table pages from {pdf_file}")
+    # print(f"[PROTOCOL] Extracting table pages from {pdf_file}")
     
     schedule_pattern = re.compile(r"schedule of activities|Schedule of Activities|Schedule of activities|schedule of Activities", re.IGNORECASE)
     intro_pattern = re.compile(r"Introduction", re.IGNORECASE)
@@ -546,7 +546,7 @@ def extract_table_pages(pdf_file):
                 break
     
     if not schedule_start_page:
-        print("[PROTOCOL] Schedule of Activities section not found")
+        st.write("[PROTOCOL] Schedule of Activities section not found")
         pdf_document.close()
         return None
     
@@ -581,9 +581,9 @@ def extract_table_pages(pdf_file):
     
     output_pdf = fitz.open()
     output_pdf.insert_pdf(pdf_document, from_page=schedule_start_page - 1, to_page=end_page - 1)
-    st.write('inserted pdf')
+    # st.write('inserted pdf')
     if output_pdf.page_count > 0:
-        st.write('more than 0 pages')
+        # st.write('more than 0 pages')
         extracted_pdf_path = "Schedule_of_Activities.pdf"
         output_pdf.save(extracted_pdf_path)
         st.write(f"[PROTOCOL] Saved {output_pdf.page_count} pages")
@@ -656,13 +656,15 @@ def process_protocol_pdf_pdfplumber(extracted_pdf_path, system_prompt, metrics, 
                     if not raw_data.empty:
                         combined_data = raw_data.copy()
                         st.write("Starting Table Cleaning")
-                        nd = table_ai(combined_data, system_prompt)
+                        nd = None #table_ai(combined_data, system_prompt)
                         
                         if not nd.empty:
                             metrics.protocol_tables_processed += 1
                             df = pd.concat((df, combined_data))
                             df_ai = pd.concat((df_ai, nd))
                             st.write(f"[PROTOCOL] Table cleaned successfully")
+                        else:
+                            df_ai = combined_data.copy()
                 
                 # Update dashboard
                 dashboard_placeholder.empty()
@@ -888,8 +890,12 @@ if st.button("🚀 Process Documents", type="primary", use_container_width=True)
                     st.session_state.protocol_ready = True
                     
                     with st.expander("👁️ Preview Protocol Data", expanded=False):
-                        st.dataframe(protocol_df.head(20), use_container_width=True)
-                    
+                        try:
+                            st.dataframe(protocol_df.head(20), use_container_width=True)
+                        except Exception as e:
+                            dup1 = protocol_df.copy()
+                            dup1.columns = [f"{c}_{i}" for i,c in enumerate(dup1.columns)]
+                            st.dataframe(dup1.head(20), use_container_width=True)
                     # Cleanup
                     if os.path.exists(extracted_pdf_path):
                         os.remove(extracted_pdf_path)

@@ -625,13 +625,13 @@ def process_protocol_pdf_pdfplumber(extracted_pdf_path, system_prompt, metrics, 
     try:
         with pdfplumber.open(extracted_pdf_path) as pdf:
             print(f"[PROTOCOL] Opened PDF with {len(pdf.pages)} pages")
-            
+            st.write("opened file")
             df = pd.DataFrame()
             df_ai = pd.DataFrame()
             
             for i in range(len(pdf.pages)):
                 page = pdf.pages[i]
-                print(f"[PROTOCOL] Processing page {i+1}/{len(pdf.pages)}")
+                st.write(f"[PROTOCOL] Processing page {i+1}/{len(pdf.pages)}")
                 
                 metrics.protocol_pages_scanned = i + 1
                 dashboard_placeholder.empty()
@@ -641,7 +641,7 @@ def process_protocol_pdf_pdfplumber(extracted_pdf_path, system_prompt, metrics, 
                 tables_on_page = page.extract_tables(table_settings=table_settings)
                 
                 if tables_on_page:
-                    print(f"[PROTOCOL] Found {len(tables_on_page)} tables on page {i+1}")
+                    st.write(f"[PROTOCOL] Found {len(tables_on_page)} tables on page {i+1}")
                     metrics.protocol_tables_found += len(tables_on_page)
                     
                     raw_data = pd.DataFrame()
@@ -651,13 +651,14 @@ def process_protocol_pdf_pdfplumber(extracted_pdf_path, system_prompt, metrics, 
                     
                     if not raw_data.empty:
                         combined_data = raw_data.copy()
+                        st.write("Starting Table Cleaning")
                         nd = table_ai(combined_data, system_prompt)
                         
                         if not nd.empty:
                             metrics.protocol_tables_processed += 1
                             df = pd.concat((df, combined_data))
                             df_ai = pd.concat((df_ai, nd))
-                            print(f"[PROTOCOL] Table cleaned successfully")
+                            st.write(f"[PROTOCOL] Table cleaned successfully")
                 
                 # Update dashboard
                 dashboard_placeholder.empty()
@@ -872,7 +873,7 @@ if st.button("🚀 Process Documents", type="primary", use_container_width=True)
                     metrics,
                     dashboard_placeholder
                 )
-                
+                st.write(protocol_df)
                 metrics.protocol_end = time.time()
                 
                 if not protocol_df.empty:

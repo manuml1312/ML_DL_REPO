@@ -865,6 +865,8 @@ if st.button("🚀 Process Documents", type="primary", use_container_width=True)
             
             with st.spinner("🔍 Identifying Schedule of Activities tables..."):
                 extracted_pdf_path = extract_table_pages(protocol_path)
+                st.write('Extracted table pages')
+                print("Extracted table pages")
             
             if extracted_pdf_path:
                 protocol_df = process_protocol_pdf_pdfplumber(

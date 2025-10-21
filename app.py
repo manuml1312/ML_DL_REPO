@@ -517,11 +517,12 @@ Return only the JSON object."""
 
 def extract_table_pages(pdf_file):
     """Extract Schedule of Activities pages"""
+    st.write(f"[PROTOCOL] Extracting table pages from {pdf_file}")
     print(f"[PROTOCOL] Extracting table pages from {pdf_file}")
     
-    schedule_pattern = re.compile(r"schedule of activities", re.IGNORECASE)
+    schedule_pattern = re.compile(r"schedule of activities|Schedule of Activities|Schedule of activities|schedule of Activities", re.IGNORECASE)
     intro_pattern = re.compile(r"Introduction", re.IGNORECASE)
-    index_pattern = re.compile(r"Table of contents", re.IGNORECASE)
+    index_pattern = re.compile(r"Table of contents|Table of Contents", re.IGNORECASE)
     
     schedule_start_page = None
     intro_start_page = None
@@ -533,13 +534,15 @@ def extract_table_pages(pdf_file):
         text = page.get_text("text", sort=True)
         
         if not index_pattern.search(text):
-            if schedule_pattern.search(text) and not schedule_start_page:
+            st.write(text)
+            if schedule_pattern.search(text):
                 schedule_start_page = page_num + 1
                 print(f"[PROTOCOL] Schedule section found at page {schedule_start_page}")
-            if intro_pattern.search(text) and not intro_start_page:
+            if intro_pattern.search(text):
                 intro_start_page = page_num + 1
                 print(f"[PROTOCOL] Introduction found at page {intro_start_page}")
             if schedule_start_page and intro_start_page:
+                st.write("Start:",schedule_start_page," End:",intro_start_page)
                 break
     
     if not schedule_start_page:

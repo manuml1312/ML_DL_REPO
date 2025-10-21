@@ -581,8 +581,9 @@ def extract_table_pages(pdf_file):
     
     output_pdf = fitz.open()
     output_pdf.insert_pdf(pdf_document, from_page=schedule_start_page - 1, to_page=end_page - 1)
-    
+    st.write('inserted pdf')
     if output_pdf.page_count > 0:
+        st.write('more than 0 pages')
         extracted_pdf_path = "Schedule_of_Activities.pdf"
         output_pdf.save(extracted_pdf_path)
         pdf_document.close()

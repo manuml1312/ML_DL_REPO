@@ -655,7 +655,7 @@ def process_protocol_pdf_pdfplumber(extracted_pdf_path, system_prompt, metrics, 
                     
                     if not raw_data.empty:
                         combined_data = raw_data.copy()
-                        st.write("Starting Table Cleaning")
+                        # st.write("Starting Table Cleaning")
                         nd = None #table_ai(combined_data, system_prompt)
                         
                         if nd is not None and not nd.empty:
@@ -679,7 +679,7 @@ def process_protocol_pdf_pdfplumber(extracted_pdf_path, system_prompt, metrics, 
                 pr_df = pd.DataFrame(all_extracted_data)
                 
                 if not pr_df.empty:
-                    print(f"[PROTOCOL] Successfully extracted {len(pr_df)} rows")
+                    st.write(f"[PROTOCOL] Successfully extracted {len(pr_df)} rows")
                     pr_df.columns = pr_df.iloc[0]
                     pr_df = pr_df[1:].reset_index(drop=True)
                     pr_df = pr_df.dropna(axis=1, how='all')
@@ -883,14 +883,13 @@ if st.button("🚀 Process Documents", type="primary", use_container_width=True)
                     metrics,
                     dashboard_placeholder
                 )
-                st.write(protocol_df)
+                # st.write(protocol_df)
                 metrics.protocol_end = time.time()
                 
                 if not protocol_df.empty:
                     st.success(f"✅ Protocol: Extracted {len(protocol_df)} rows in {format_time(metrics.get_protocol_time())}")
                     st.session_state.protocol_df = protocol_df
                     st.session_state.protocol_ready = True
-                    
                     with st.expander("👁️ Preview Protocol Data", expanded=False):
                         try:
                             st.dataframe(protocol_df.head(20), use_container_width=True)

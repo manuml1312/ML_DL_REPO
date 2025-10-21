@@ -628,14 +628,14 @@ def process_protocol_pdf_pdfplumber(extracted_pdf_path, system_prompt, metrics, 
     
     try:
         with pdfplumber.open(extracted_pdf_path) as pdf:
-            print(f"[PROTOCOL] Opened PDF with {len(pdf.pages)} pages")
+            # print(f"[PROTOCOL] Opened PDF with {len(pdf.pages)} pages")
             # st.write("opened file")
             df = pd.DataFrame()
             df_ai = pd.DataFrame()
             
             for i in range(len(pdf.pages)):
                 page = pdf.pages[i]
-                st.write(f"[PROTOCOL] Processing page {i+1}/{len(pdf.pages)}")
+                # st.write(f"[PROTOCOL] Processing page {i+1}/{len(pdf.pages)}")
                 
                 metrics.protocol_pages_scanned = i + 1
                 dashboard_placeholder.empty()
@@ -679,7 +679,7 @@ def process_protocol_pdf_pdfplumber(extracted_pdf_path, system_prompt, metrics, 
                 pr_df = pd.DataFrame(all_extracted_data)
                 
                 if not pr_df.empty:
-                    st.write(f"[PROTOCOL] Successfully extracted {len(pr_df)} rows")
+                    # st.write(f"[PROTOCOL] Successfully extracted {len(pr_df)} rows")
                     pr_df.columns = pr_df.iloc[0]
                     pr_df = pr_df[1:].reset_index(drop=True)
                     pr_df = pr_df.dropna(axis=1, how='all')

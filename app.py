@@ -586,9 +586,9 @@ def extract_table_pages(pdf_file):
         st.write('more than 0 pages')
         extracted_pdf_path = "Schedule_of_Activities.pdf"
         output_pdf.save(extracted_pdf_path)
+        st.write(f"[PROTOCOL] Saved {output_pdf.page_count} pages")
         pdf_document.close()
         output_pdf.close()
-        st.write(f"[PROTOCOL] Saved {output_pdf.page_count} pages")
         return extracted_pdf_path
     else:
         output_pdf.close()

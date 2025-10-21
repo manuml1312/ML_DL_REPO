@@ -658,13 +658,15 @@ def process_protocol_pdf_pdfplumber(extracted_pdf_path, system_prompt, metrics, 
                         st.write("Starting Table Cleaning")
                         nd = None #table_ai(combined_data, system_prompt)
                         
-                        if not nd.empty:
+                        if nd is not None and not nd.empty:
                             metrics.protocol_tables_processed += 1
                             df = pd.concat((df, combined_data))
                             df_ai = pd.concat((df_ai, nd))
                             st.write(f"[PROTOCOL] Table cleaned successfully")
                         else:
-                            df_ai = combined_data.copy()
+                            df = pd.concat((df, combined_data))
+                            df_ai = df.copy()
+                            st.write(f"[PROTOCOL] Table cleaned successfully")
                 
                 # Update dashboard
                 dashboard_placeholder.empty()

@@ -534,7 +534,7 @@ def extract_table_pages(pdf_file):
         text = page.get_text("text", sort=True)
         
         if not index_pattern.search(text):
-            st.write(text)
+            # st.write(text)
             if schedule_pattern.search(text):
                 schedule_start_page = page_num + 1
                 print(f"[PROTOCOL] Schedule section found at page {schedule_start_page}")
@@ -577,7 +577,7 @@ def extract_table_pages(pdf_file):
                 if consecutive_empty_pages >= max_empty_pages or not intro_start_page:
                     break
     
-    print(f"[PROTOCOL] Extracting pages {schedule_start_page} to {end_page}")
+    st.write(f"[PROTOCOL] Extracting pages {schedule_start_page} to {end_page}")
     
     output_pdf = fitz.open()
     output_pdf.insert_pdf(pdf_document, from_page=schedule_start_page - 1, to_page=end_page - 1)
@@ -587,12 +587,12 @@ def extract_table_pages(pdf_file):
         output_pdf.save(extracted_pdf_path)
         pdf_document.close()
         output_pdf.close()
-        print(f"[PROTOCOL] Saved {output_pdf.page_count} pages")
+        st.write(f"[PROTOCOL] Saved {output_pdf.page_count} pages")
         return extracted_pdf_path
     else:
         output_pdf.close()
         pdf_document.close()
-        print("[PROTOCOL] No pages extracted")
+        st.write("[PROTOCOL] No pages extracted")
         return None
 
 def process_protocol_pdf_pdfplumber(extracted_pdf_path, system_prompt, metrics, dashboard_placeholder):
@@ -628,7 +628,7 @@ def process_protocol_pdf_pdfplumber(extracted_pdf_path, system_prompt, metrics, 
     try:
         with pdfplumber.open(extracted_pdf_path) as pdf:
             print(f"[PROTOCOL] Opened PDF with {len(pdf.pages)} pages")
-            st.write("opened file")
+            # st.write("opened file")
             df = pd.DataFrame()
             df_ai = pd.DataFrame()
             

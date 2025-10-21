@@ -586,7 +586,7 @@ def extract_table_pages(pdf_file):
         # st.write('more than 0 pages')
         extracted_pdf_path = "Schedule_of_Activities.pdf"
         output_pdf.save(extracted_pdf_path)
-        st.write(f"[PROTOCOL] Saved {output_pdf.page_count} pages")
+        # st.write(f"[PROTOCOL] Saved {output_pdf.page_count} pages")
         pdf_document.close()
         output_pdf.close()
         return extracted_pdf_path
@@ -645,7 +645,7 @@ def process_protocol_pdf_pdfplumber(extracted_pdf_path, system_prompt, metrics, 
                 tables_on_page = page.extract_tables(table_settings=table_settings)
                 
                 if tables_on_page:
-                    st.write(f"[PROTOCOL] Found {len(tables_on_page)} tables on page {i+1}")
+                    print(f"[PROTOCOL] Found {len(tables_on_page)} tables on page {i+1}")
                     metrics.protocol_tables_found += len(tables_on_page)
                     
                     raw_data = pd.DataFrame()
@@ -662,11 +662,11 @@ def process_protocol_pdf_pdfplumber(extracted_pdf_path, system_prompt, metrics, 
                             metrics.protocol_tables_processed += 1
                             df = pd.concat((df, combined_data))
                             df_ai = pd.concat((df_ai, nd))
-                            st.write(f"[PROTOCOL] Table cleaned successfully")
+                            print(f"[PROTOCOL] Table cleaned successfully")
                         else:
                             df = pd.concat((df, combined_data))
                             df_ai = df.copy()
-                            st.write(f"[PROTOCOL] Table cleaned successfully")
+                            print(f"[PROTOCOL] Table cleaned successfully")
                 
                 # Update dashboard
                 dashboard_placeholder.empty()
@@ -685,7 +685,7 @@ def process_protocol_pdf_pdfplumber(extracted_pdf_path, system_prompt, metrics, 
                     pr_df = pr_df.dropna(axis=1, how='all')
                     return pr_df
             else:
-                print("[PROTOCOL] No tables extracted")
+                st.write("[PROTOCOL] No tables extracted")
                 return pd.DataFrame()
     
     except Exception as e:

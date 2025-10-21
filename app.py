@@ -664,6 +664,7 @@ def process_protocol_pdf_pdfplumber(extracted_pdf_path, system_prompt, metrics, 
                             df_ai = pd.concat((df_ai, nd))
                             print(f"[PROTOCOL] Table cleaned successfully")
                         else:
+                            metrics.protocol_tables_processed += 1
                             df = pd.concat((df, combined_data))
                             df_ai = df.copy()
                             print(f"[PROTOCOL] Table cleaned successfully")

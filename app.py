@@ -879,67 +879,96 @@ Return only the JSON object."""
 
 def extract_table_pages(pdf_file):
     """Extract Schedule of Activities pages"""
-    # st.write(f"[PROTOCOL] Extracting table pages from {pdf_file}")
-    # print(f"[PROTOCOL] Extracting table pages from {pdf_file}")
-    
-    schedule_pattern = re.compile(r"schedule of activities|Schedule of Activities|Schedule of activities|schedule of Activities", re.IGNORECASE)
+    print(f"[PROTOCOL] Extracting table pages from {pdf_file}")
+
+    schedule_pattern = re.compile(r"schedule\s+of\s+activities", re.IGNORECASE)
     intro_pattern = re.compile(r"Introduction", re.IGNORECASE)
-    index_pattern = re.compile(r"Table of contents|Table of Contents", re.IGNORECASE)
-    
+    index_pattern = re.compile(r"Table\s+of\s+[Cc]ontents|Contents", re.IGNORECASE)
+
     schedule_start_page = None
     intro_start_page = None
-    
+
     pdf_document = fitz.open(pdf_file)
-    
+
+    print(f"[PROTOCOL] Scanning {len(pdf_document)} pages for Schedule of Activities")
+
+    # First pass: Find schedule start page (skip only the table of contents page itself)
     for page_num in range(len(pdf_document)):
         page = pdf_document[page_num]
         text = page.get_text("text", sort=True)
-        
-        if not index_pattern.search(text):
-            # st.write(text)
-            if schedule_pattern.search(text):
+
+        # Check if this is a Table of Contents page
+        is_toc_page = index_pattern.search(text)
+
+        # Look for Schedule of Activities (even on TOC page, but prefer actual content pages)
+        if schedule_pattern.search(text):
+            # If we haven't found it yet, or this is not a TOC page, use this page
+            if schedule_start_page is None or not is_toc_page:
                 schedule_start_page = page_num + 1
                 print(f"[PROTOCOL] Schedule section found at page {schedule_start_page}")
+                # If not on TOC, we can break here
+                if not is_toc_page:
+                    break
+
+    # Second pass: Find introduction or end marker (only if schedule was found)
+    if schedule_start_page:
+        for page_num in range(schedule_start_page, len(pdf_document)):
+            page = pdf_document[page_num]
+            text = page.get_text("text", sort=True)
+
             if intro_pattern.search(text):
                 intro_start_page = page_num + 1
                 print(f"[PROTOCOL] Introduction found at page {intro_start_page}")
-            if schedule_start_page and intro_start_page:
-                st.write("Start:",schedule_start_page," End:",intro_start_page)
                 break
-    
+
     if not schedule_start_page:
-        st.write("[PROTOCOL] Schedule of Activities section not found")
+        st.error("❌ [PROTOCOL] Schedule of Activities section not found in the PDF")
+        print("[PROTOCOL] Schedule of Activities section not found")
         pdf_document.close()
         return None
+
+    st.write(f"📍 Found Schedule of Activities at page {schedule_start_page}")
+    if intro_start_page:
+        st.write(f"📍 Found Introduction at page {intro_start_page}")
+
+    print(f"[PROTOCOL] Schedule starts at page {schedule_start_page}, Introduction at page {intro_start_page if intro_start_page else 'not found'}")
     
     end_page = intro_start_page if intro_start_page else len(pdf_document)
-    
+
     table_settings = {
         "vertical_strategy": "lines",
         "horizontal_strategy": "lines",
         "snap_tolerance": 300,
         "edge_min_length": 100,
     }
-    
+
     consecutive_empty_pages = 0
     max_empty_pages = 2
-    
+
+    print(f"[PROTOCOL] Scanning for tables from page {schedule_start_page} to {end_page}")
+
     with pdfplumber.open(pdf_file) as pdf:
         for i in range(schedule_start_page - 1, len(pdf.pages)):
             page = pdf.pages[i]
             tables_on_page = page.extract_tables(table_settings=table_settings)
-            
-            if i == intro_start_page:
+
+            # Stop if we've reached the introduction page (fix: i is 0-indexed, intro_start_page is 1-indexed)
+            if intro_start_page and (i + 1) >= intro_start_page:
+                print(f"[PROTOCOL] Reached introduction page, stopping at page {i + 1}")
                 break
             elif tables_on_page and any(len(table) > 2 for table in tables_on_page):
                 end_page = i + 1
                 consecutive_empty_pages = 0
+                print(f"[PROTOCOL] Found table on page {i + 1}, updating end_page to {end_page}")
             else:
                 consecutive_empty_pages += 1
-                if consecutive_empty_pages >= max_empty_pages or not intro_start_page:
+                print(f"[PROTOCOL] No tables on page {i + 1}, consecutive empty: {consecutive_empty_pages}")
+                # If no intro marker, stop after 2 consecutive empty pages
+                if consecutive_empty_pages >= max_empty_pages and not intro_start_page:
+                    print(f"[PROTOCOL] Stopping after {consecutive_empty_pages} consecutive empty pages")
                     break
-    
-    st.write(f"[PROTOCOL] Extracting pages {schedule_start_page} to {end_page}")
+
+    st.write(f"📄 Extracting pages {schedule_start_page} to {end_page}")
     
     output_pdf = fitz.open()
     output_pdf.insert_pdf(pdf_document, from_page=schedule_start_page - 1, to_page=end_page - 1)

@@ -215,6 +215,368 @@ def combine_rows(df3):
     print(f"[COMBINE] Combined to {len(result)} rows")
     return result
 
+# ==================== PROTOCOL POST-PROCESSING ====================
+
+def parse_visit_window(window_str):
+    """Parse visit window string to get numeric value"""
+    try:
+        if pd.isna(window_str) or window_str == '':
+            return 0
+        window_str = str(window_str).strip()
+        if window_str.startswith('±'):
+            return int(window_str.replace('±', ''))
+        elif '/' in window_str:  # Handle "0/+5" case
+            return window_str
+        else:
+            return 0
+    except Exception as e:
+        print(f"[PARSE_WINDOW] Error parsing window '{window_str}': {e}")
+        return 0
+
+def map_protocol_to_schedule_grid(protocol_df):
+    """
+    Map protocol visit details to Schedule Grid format with error handling
+
+    Parameters:
+    protocol_df: DataFrame with columns including 'Visit short name', 'Study week', 'Visit window (days)'
+
+    Returns:
+    schedule_grid_df: DataFrame in Schedule Grid format, or empty DataFrame on error
+    """
+    try:
+        print("[SCHEDULE_GRID] Starting protocol to schedule grid mapping")
+
+        # Validate input
+        if protocol_df is None or protocol_df.empty:
+            print("[SCHEDULE_GRID] Error: Empty protocol DataFrame")
+            return pd.DataFrame()
+
+        # Check if required rows exist
+        required_procedures = ['Visit short name', 'Study week', 'Visit window (days)']
+        if 'Procedure' not in protocol_df.columns:
+            print("[SCHEDULE_GRID] Error: 'Procedure' column not found")
+            return pd.DataFrame()
+
+        available_procedures = protocol_df['Procedure'].tolist()
+        missing_procedures = [p for p in required_procedures if p not in available_procedures]
+        if missing_procedures:
+            print(f"[SCHEDULE_GRID] Error: Missing required procedures: {missing_procedures}")
+            return pd.DataFrame()
+
+        # Extract relevant rows from protocol dataframe
+        visit_names = protocol_df[protocol_df['Procedure'] == 'Visit short name'].iloc[0, 2:].values
+        study_weeks = protocol_df[protocol_df['Procedure'] == 'Study week'].iloc[0, 2:].values
+        visit_windows = protocol_df[protocol_df['Procedure'] == 'Visit window (days)'].iloc[0, 2:].values
+
+        # Initialize schedule grid data
+        schedule_data = {
+            'Form Label': [],
+            'RTSM': [],
+            'Screening': [],
+            'Randomisation': []
+        }
+
+        # Process each visit to determine which category it falls into
+        visits_list = []
+        for i, (visit_name, week, window) in enumerate(zip(visit_names, study_weeks, visit_windows)):
+            if pd.notna(visit_name):
+                visit_name_clean = str(visit_name).strip()
+                try:
+                    week_num = float(week) if pd.notna(week) else 0
+                except:
+                    week_num = 0
+
+                window_val = parse_visit_window(window)
+
+                visits_list.append({
+                    'visit_name': visit_name_clean,
+                    'week': week_num,
+                    'window': window_val,
+                    'index': i
+                })
+
+        # Validate minimum visits
+        total_visits = len(visits_list)
+        if total_visits < 3:
+            print(f"[SCHEDULE_GRID] Error: Protocol must have at least 3 visits (found {total_visits})")
+            return pd.DataFrame()
+
+        print(f"[SCHEDULE_GRID] Processing {total_visits} visits")
+
+        # DYNAMIC CATEGORIZATION based on position
+        screening_visit = visits_list[0]  # First visit
+        randomisation_visit = visits_list[1]  # Second visit
+        end_of_study_visit = visits_list[-1]  # Last visit
+        follow_up_visit = visits_list[-2] if total_visits > 2 else None
+        end_of_treatment_visit = visits_list[-3] if total_visits > 3 else None
+
+        # Main Study: From 3rd visit to visit before EOT
+        main_study_visits = []
+        if total_visits > 4:
+            main_study_visits = visits_list[2:-3]
+        elif total_visits == 4:
+            main_study_visits = []
+
+        # Add Main Study visit columns to schedule_data
+        for v in main_study_visits:
+            col_name = f"Visit {v['visit_name']}"
+            schedule_data[col_name] = []
+
+        # Add remaining columns
+        if end_of_treatment_visit:
+            schedule_data['End of Treatment'] = []
+        if follow_up_visit:
+            schedule_data['Follow Up'] = []
+        if end_of_study_visit:
+            schedule_data['End of Study'] = []
+
+        # Define rows for the schedule grid
+        rows = [
+            'Event Label:',
+            'Event Name:',
+            'Visit Dynamics (If Y, then Event should appear based on triggering criteria)',
+            'Triggering: Event',
+            'Triggering: Form',
+            'Triggering: Item = Response',
+            'Event Window Configuration',
+            'Assign Visit Window',
+            'Offset Type',
+            'Offset Days',
+            'Day Range - Early',
+            'Day Range - Late'
+        ]
+
+        for row_name in rows:
+            row_data = {'Form Label': row_name}
+
+            # RTSM columns (appear for Screening and Randomisation)
+            if row_name == 'Event Label:':
+                row_data['RTSM'] = 'RTSM'
+                row_data['Screening'] = 'Screening'
+                row_data['Randomisation'] = 'Randomisation'
+            elif row_name == 'Event Name:':
+                row_data['RTSM'] = 'RTSM'
+                row_data['Screening'] = 'SCRN'
+                row_data['Randomisation'] = 'RAND'
+            elif row_name == 'Visit Dynamics (If Y, then Event should appear based on triggering criteria)':
+                row_data['RTSM'] = ''
+                row_data['Screening'] = 'Y'
+                row_data['Randomisation'] = 'Y'
+            elif row_name == 'Triggering: Event':
+                row_data['RTSM'] = ''
+                row_data['Screening'] = 'SCRN'
+                row_data['Randomisation'] = 'RAND'
+            elif row_name == 'Triggering: Form':
+                row_data['RTSM'] = ''
+                row_data['Screening'] = 'ELIGIBILITY_CRITERIA'
+                row_data['Randomisation'] = 'RANDOMISATION'
+            elif row_name == 'Triggering: Item = Response':
+                row_data['RTSM'] = ''
+                row_data['Screening'] = 'DSSTDAT_ELIG'
+                row_data['Randomisation'] = 'DSSTDAT_RAND'
+            elif row_name == 'Assign Visit Window':
+                row_data['RTSM'] = ''
+                row_data['Screening'] = 'Y'
+                row_data['Randomisation'] = 'Y'
+            elif row_name == 'Offset Type':
+                row_data['RTSM'] = ''
+                row_data['Screening'] = 'Specific: SCRN'
+                row_data['Randomisation'] = 'Specific: RAND'
+            elif row_name == 'Offset Days':
+                row_data['RTSM'] = ''
+                row_data['Screening'] = '3'
+                row_data['Randomisation'] = '3'
+            elif row_name == 'Day Range - Early':
+                row_data['RTSM'] = ''
+                center_day = int(screening_visit['week'] * 7)
+                if isinstance(screening_visit['window'], str) and '/' in screening_visit['window']:
+                    parts = screening_visit['window'].split('/')
+                    early_offset = int(parts[0]) if parts[0] else 0
+                    row_data['Screening'] = str(center_day + early_offset)
+                else:
+                    window = screening_visit['window'] if isinstance(screening_visit['window'], int) else 14
+                    row_data['Screening'] = str(center_day - window)
+                row_data['Randomisation'] = '0'
+            elif row_name == 'Day Range - Late':
+                row_data['RTSM'] = ''
+                center_day = int(screening_visit['week'] * 7)
+                if isinstance(screening_visit['window'], str) and '/' in screening_visit['window']:
+                    parts = screening_visit['window'].split('/')
+                    late_offset = int(parts[1].replace('+', '')) if len(parts) > 1 else 14
+                    row_data['Screening'] = str(center_day + late_offset)
+                else:
+                    window = screening_visit['window'] if isinstance(screening_visit['window'], int) else 14
+                    row_data['Screening'] = str(center_day - window)
+                row_data['Randomisation'] = '0'
+            else:
+                row_data['RTSM'] = ''
+                row_data['Screening'] = ''
+                row_data['Randomisation'] = ''
+
+            # Fill Main Study visits
+            for v in main_study_visits:
+                col_name = f"Visit {v['visit_name']}"
+
+                if row_name == 'Event Label:':
+                    row_data[col_name] = f"Visit {v['visit_name']}"
+                elif row_name == 'Event Name:':
+                    row_data[col_name] = v['visit_name']
+                elif row_name == 'Visit Dynamics (If Y, then Event should appear based on triggering criteria)':
+                    row_data[col_name] = 'Y'
+                elif row_name == 'Triggering: Event':
+                    row_data[col_name] = 'AE'
+                elif row_name == 'Triggering: Form':
+                    row_data[col_name] = 'AE'
+                elif row_name == 'Triggering: Item = Response':
+                    row_data[col_name] = 'AE.AEOUT'
+                elif row_name == 'Assign Visit Window':
+                    row_data[col_name] = 'Y'
+                elif row_name == 'Offset Type':
+                    row_data[col_name] = 'Previous'
+                elif row_name == 'Offset Days':
+                    row_data[col_name] = '3'
+                elif row_name == 'Day Range - Early':
+                    center_day = int(v['week'] * 7)
+                    window = v['window'] if isinstance(v['window'], int) else 3
+                    row_data[col_name] = str(center_day - window)
+                elif row_name == 'Day Range - Late':
+                    center_day = int(v['week'] * 7)
+                    window = v['window'] if isinstance(v['window'], int) else 3
+                    row_data[col_name] = str(center_day + window)
+                else:
+                    row_data[col_name] = ''
+
+            # Fill End of Treatment
+            if end_of_treatment_visit:
+                if row_name == 'Event Label:':
+                    row_data['End of Treatment'] = 'End of Treatment'
+                elif row_name == 'Event Name:':
+                    row_data['End of Treatment'] = end_of_treatment_visit['visit_name']
+                elif row_name == 'Visit Dynamics (If Y, then Event should appear based on triggering criteria)':
+                    row_data['End of Treatment'] = 'Y'
+                elif row_name == 'Triggering: Event':
+                    row_data['End of Treatment'] = 'EOT'
+                elif row_name == 'Triggering: Form':
+                    row_data['End of Treatment'] = 'AE'
+                elif row_name == 'Triggering: Item = Response':
+                    row_data['End of Treatment'] = 'AE.AEOUT'
+                elif row_name == 'Assign Visit Window':
+                    row_data['End of Treatment'] = 'Y'
+                elif row_name == 'Offset Type':
+                    row_data['End of Treatment'] = 'Previous'
+                elif row_name == 'Offset Days':
+                    row_data['End of Treatment'] = '3'
+                elif row_name == 'Day Range - Early':
+                    center_day = int(end_of_treatment_visit['week'] * 7)
+                    window = end_of_treatment_visit['window'] if isinstance(end_of_treatment_visit['window'], int) else 3
+                    row_data['End of Treatment'] = str(center_day - window)
+                elif row_name == 'Day Range - Late':
+                    center_day = int(end_of_treatment_visit['week'] * 7)
+                    window = end_of_treatment_visit['window'] if isinstance(end_of_treatment_visit['window'], int) else 3
+                    row_data['End of Treatment'] = str(center_day + window)
+                else:
+                    row_data['End of Treatment'] = ''
+
+            # Fill Follow Up
+            if follow_up_visit:
+                if row_name == 'Event Label:':
+                    row_data['Follow Up'] = f'Visit {follow_up_visit["visit_name"]}'
+                elif row_name == 'Event Name:':
+                    row_data['Follow Up'] = follow_up_visit['visit_name']
+                elif row_name == 'Visit Dynamics (If Y, then Event should appear based on triggering criteria)':
+                    row_data['Follow Up'] = 'Y'
+                elif row_name == 'Triggering: Event':
+                    row_data['Follow Up'] = follow_up_visit['visit_name']
+                elif row_name == 'Triggering: Form':
+                    row_data['Follow Up'] = 'AE'
+                elif row_name == 'Triggering: Item = Response':
+                    row_data['Follow Up'] = 'AE.AEOUT'
+                elif row_name == 'Assign Visit Window':
+                    row_data['Follow Up'] = 'Y'
+                elif row_name == 'Offset Type':
+                    row_data['Follow Up'] = 'Previous'
+                elif row_name == 'Offset Days':
+                    row_data['Follow Up'] = '3'
+                elif row_name == 'Day Range - Early':
+                    center_day = int(follow_up_visit['week'] * 7)
+                    window = follow_up_visit['window'] if isinstance(follow_up_visit['window'], int) else 3
+                    row_data['Follow Up'] = str(center_day - window)
+                elif row_name == 'Day Range - Late':
+                    center_day = int(follow_up_visit['week'] * 7)
+                    window = follow_up_visit['window'] if isinstance(follow_up_visit['window'], int) else 3
+                    row_data['Follow Up'] = str(center_day + window)
+                else:
+                    row_data['Follow Up'] = ''
+
+            # Fill End of Study
+            if end_of_study_visit:
+                if row_name == 'Event Label:':
+                    row_data['End of Study'] = 'End of Study'
+                elif row_name == 'Event Name:':
+                    row_data['End of Study'] = end_of_study_visit['visit_name']
+                elif row_name == 'Visit Dynamics (If Y, then Event should appear based on triggering criteria)':
+                    row_data['End of Study'] = 'Y'
+                elif row_name == 'Triggering: Event':
+                    row_data['End of Study'] = 'EOS'
+                elif row_name == 'Triggering: Form':
+                    row_data['End of Study'] = 'AE'
+                elif row_name == 'Triggering: Item = Response':
+                    row_data['End of Study'] = 'AE.AEOUT'
+                elif row_name == 'Assign Visit Window':
+                    row_data['End of Study'] = 'Y'
+                elif row_name == 'Offset Type':
+                    row_data['End of Study'] = 'Previous'
+                elif row_name == 'Offset Days':
+                    row_data['End of Study'] = '3'
+                elif row_name == 'Day Range - Early':
+                    center_day = int(end_of_study_visit['week'] * 7)
+                    if isinstance(end_of_study_visit['window'], str) and '/' in end_of_study_visit['window']:
+                        parts = end_of_study_visit['window'].split('/')
+                        early_offset = int(parts[0]) if parts[0] else 0
+                        row_data['End of Study'] = str(center_day + early_offset)
+                    else:
+                        window = end_of_study_visit['window'] if isinstance(end_of_study_visit['window'], int) else 0
+                        row_data['End of Study'] = str(center_day - window)
+                elif row_name == 'Day Range - Late':
+                    center_day = int(end_of_study_visit['week'] * 7)
+                    if isinstance(end_of_study_visit['window'], str) and '/' in end_of_study_visit['window']:
+                        parts = end_of_study_visit['window'].split('/')
+                        late_offset = int(parts[1].replace('+', '')) if len(parts) > 1 else 0
+                        row_data['End of Study'] = str(center_day + late_offset)
+                    else:
+                        window = end_of_study_visit['window'] if isinstance(end_of_study_visit['window'], int) else 0
+                        row_data['End of Study'] = str(center_day + window)
+                else:
+                    row_data['End of Study'] = ''
+
+            schedule_data['Form Label'].append(row_data['Form Label'])
+            schedule_data['RTSM'].append(row_data.get('RTSM', ''))
+            schedule_data['Screening'].append(row_data.get('Screening', ''))
+            schedule_data['Randomisation'].append(row_data.get('Randomisation', ''))
+
+            for v in main_study_visits:
+                col_name = f"Visit {v['visit_name']}"
+                schedule_data[col_name].append(row_data.get(col_name, ''))
+
+            if end_of_treatment_visit:
+                schedule_data['End of Treatment'].append(row_data.get('End of Treatment', ''))
+            if follow_up_visit:
+                schedule_data['Follow Up'].append(row_data.get('Follow Up', ''))
+            if end_of_study_visit:
+                schedule_data['End of Study'].append(row_data.get('End of Study', ''))
+
+        # Create DataFrame
+        schedule_grid_df = pd.DataFrame(schedule_data)
+        print(f"[SCHEDULE_GRID] Successfully created schedule grid with {len(schedule_grid_df)} rows")
+
+        return schedule_grid_df
+
+    except Exception as e:
+        print(f"[SCHEDULE_GRID] Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return pd.DataFrame()
+
 # ==================== CRF CHUNKING ====================
 
 class DOCXCRFChunker:
@@ -811,10 +1173,14 @@ def ai_extract(chunks, system_prompt, metrics, dashboard_placeholder):
 # Initialize session state
 if 'protocol_df' not in st.session_state:
     st.session_state.protocol_df = None
+if 'schedule_grid_df' not in st.session_state:
+    st.session_state.schedule_grid_df = None
 if 'crf_df' not in st.session_state:
     st.session_state.crf_df = None
 if 'protocol_ready' not in st.session_state:
     st.session_state.protocol_ready = False
+if 'schedule_grid_ready' not in st.session_state:
+    st.session_state.schedule_grid_ready = False
 if 'crf_ready' not in st.session_state:
     st.session_state.crf_ready = False
 if 'protocol_error' not in st.session_state:
@@ -855,6 +1221,7 @@ if st.button("🚀 Process Documents", type="primary", use_container_width=True)
         
         # Reset states
         st.session_state.protocol_ready = False
+        st.session_state.schedule_grid_ready = False
         st.session_state.crf_ready = False
         st.session_state.protocol_error = None
         st.session_state.crf_error = None
@@ -891,6 +1258,25 @@ if st.button("🚀 Process Documents", type="primary", use_container_width=True)
                     st.success(f"✅ Protocol: Extracted {len(protocol_df)} rows in {format_time(metrics.get_protocol_time())}")
                     st.session_state.protocol_df = protocol_df
                     st.session_state.protocol_ready = True
+
+                    # Post-process to create schedule grid
+                    with st.spinner("🔄 Creating Schedule Grid..."):
+                        try:
+                            print("[MAIN] Starting schedule grid post-processing")
+                            schedule_grid_df = map_protocol_to_schedule_grid(protocol_df)
+
+                            if not schedule_grid_df.empty:
+                                st.session_state.schedule_grid_df = schedule_grid_df
+                                st.session_state.schedule_grid_ready = True
+                                st.success(f"✅ Schedule Grid: Created with {len(schedule_grid_df)} rows")
+                                print(f"[MAIN] Schedule grid created successfully with {len(schedule_grid_df)} rows")
+                            else:
+                                st.warning("⚠️ Schedule Grid could not be created - check if protocol data has required format")
+                                print("[MAIN] Schedule grid creation returned empty DataFrame")
+                        except Exception as e:
+                            st.warning(f"⚠️ Schedule Grid creation failed: {e}")
+                            print(f"[MAIN] Schedule grid error: {e}")
+
                     with st.expander("👁️ Preview Protocol Data", expanded=False):
                         try:
                             st.dataframe(protocol_df.head(20), use_container_width=True)
@@ -898,6 +1284,11 @@ if st.button("🚀 Process Documents", type="primary", use_container_width=True)
                             dup1 = protocol_df.copy()
                             dup1.columns = [f"{c}_{i}" for i,c in enumerate(dup1.columns)]
                             st.dataframe(dup1.head(20), use_container_width=True)
+
+                    if st.session_state.schedule_grid_ready:
+                        with st.expander("👁️ Preview Schedule Grid", expanded=False):
+                            st.dataframe(st.session_state.schedule_grid_df.head(20), use_container_width=True)
+
                     # Cleanup
                     if os.path.exists(extracted_pdf_path):
                         os.remove(extracted_pdf_path)
@@ -976,21 +1367,22 @@ if st.button("🚀 Process Documents", type="primary", use_container_width=True)
         
         # Summary
         st.markdown("---")
-        if st.session_state.protocol_ready or st.session_state.crf_ready:
+        if st.session_state.protocol_ready or st.session_state.schedule_grid_ready or st.session_state.crf_ready:
             st.success("🎉 Processing complete! Download your results below.")
         else:
             st.error("❌ Both processes failed. Please check your files and try again.")
 
-# Download section - Protocol
+# Download section - Protocol (AI Processed Tables)
 if st.session_state.protocol_ready:
     st.markdown("---")
-    st.subheader("📥 Protocol Results")
+    st.subheader("📥 Protocol REF - AI Processed Tables")
     col1, col2 = st.columns([3, 1])
     with col1:
-        st.success(f"✅ Protocol data ready ({len(st.session_state.protocol_df)} rows)")
+        st.success(f"✅ Protocol extracted data ready ({len(st.session_state.protocol_df)} rows)")
+        st.info("📄 File 1/3: Raw extracted Schedule of Activities tables from Protocol REF")
     with col2:
         st.download_button(
-            "📥 Download CSV",
+            "📥 Download Protocol CSV",
             data=st.session_state.protocol_df.to_csv(index=False).encode('utf-8'),
             file_name=f'protocol_extraction_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv',
             mime='text/csv',
@@ -1000,16 +1392,35 @@ if st.session_state.protocol_ready:
 elif st.session_state.protocol_error:
     st.error(f"❌ Protocol error: {st.session_state.protocol_error}")
 
-# Download section - CRF
-if st.session_state.crf_ready:
+# Download section - Schedule Grid (Mapped Protocol)
+if st.session_state.schedule_grid_ready:
     st.markdown("---")
-    st.subheader("📥 CRF Results")
+    st.subheader("📥 Schedule Grid - Mapped Protocol")
     col1, col2 = st.columns([3, 1])
     with col1:
-        st.success(f"✅ CRF data ready ({len(st.session_state.crf_df)} rows)")
+        st.success(f"✅ Schedule Grid mapping ready ({len(st.session_state.schedule_grid_df)} rows)")
+        st.info("📄 File 2/3: Protocol data mapped to Schedule Grid format")
     with col2:
         st.download_button(
-            "📥 Download CSV",
+            "📥 Download Schedule Grid CSV",
+            data=st.session_state.schedule_grid_df.to_csv(index=False).encode('utf-8'),
+            file_name=f'schedule_grid_mapped_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv',
+            mime='text/csv',
+            type='primary',
+            use_container_width=True
+        )
+
+# Download section - CRF Output
+if st.session_state.crf_ready:
+    st.markdown("---")
+    st.subheader("📥 CRF - Extracted Data")
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        st.success(f"✅ CRF extraction ready ({len(st.session_state.crf_df)} rows)")
+        st.info("📄 File 3/3: Extracted and mapped CRF data from Mock CRF document")
+    with col2:
+        st.download_button(
+            "📥 Download CRF CSV",
             data=st.session_state.crf_df.to_csv(index=False).encode('utf-8'),
             file_name=f'crf_extraction_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv',
             mime='text/csv',
@@ -1020,23 +1431,25 @@ elif st.session_state.crf_error:
     st.error(f"❌ CRF error: {st.session_state.crf_error}")
 
 # Reset button
-if (st.session_state.protocol_ready or st.session_state.crf_ready or 
+if (st.session_state.protocol_ready or st.session_state.schedule_grid_ready or st.session_state.crf_ready or
     st.session_state.protocol_error or st.session_state.crf_error):
     st.markdown("---")
     if st.button('🔄 Process New Documents', use_container_width=True):
         # Clear session state
         st.session_state.protocol_df = None
+        st.session_state.schedule_grid_df = None
         st.session_state.crf_df = None
         st.session_state.protocol_ready = False
+        st.session_state.schedule_grid_ready = False
         st.session_state.crf_ready = False
         st.session_state.protocol_error = None
         st.session_state.crf_error = None
-        
+
         # Clean up temp files
         for f in ["temp_crf.docx", "temp_protocol.pdf", "Schedule_of_Activities.pdf"]:
             if os.path.exists(f):
                 os.remove(f)
-        
+
         print("[MAIN] Reset complete, ready for new documents")
         st.rerun()
 

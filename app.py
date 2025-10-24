@@ -615,7 +615,7 @@ def process_protocol_pdf_pdfplumber(extracted_pdf_path, system_prompt, metrics, 
         "join_tolerance": 1,
         "join_x_tolerance": 2,
         "join_y_tolerance": 3,
-        "edge_min_length": 100,
+        "edge_min_length": 20, #100
         "min_words_vertical": 3,
         "min_words_horizontal": 1,
         "intersection_tolerance": 1,

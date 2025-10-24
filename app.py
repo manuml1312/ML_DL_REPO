@@ -859,8 +859,6 @@ TRANSFORMATIONS (execute in order):
 
 5. CLEAN TEXT
    - Remove ALL "\n" from final output
-   - If there are unwanted symbols like in this case Â±3 keep the number and the signs, not the special character
-   - Given a cell value like -7/+13, here '/' means or, not as a mathematical symbol, so do not divide
    - Fix broken words: "Withdraw al" → "Withdrawal"
    - Fix spellings, keep section numbers: "10.1.3", "8.1"
    - Replace None/null with ""

@@ -1531,7 +1531,7 @@ with col2:
     uploaded_protocol_file = st.file_uploader("📋 Upload Protocol REF (.pdf)", type="pdf")
 
 # Process button
-if st.button("🚀 Process Documents", type="primary", use_container_width=True):
+if st.button("🚀 Process Documents", type="primary", width='stretch'):
     if uploaded_crf_file and uploaded_protocol_file:
         
         # Initialize metrics
@@ -1612,15 +1612,15 @@ if st.button("🚀 Process Documents", type="primary", use_container_width=True)
 
                     with st.expander("👁️ Preview Protocol Data", expanded=False):
                         try:
-                            st.dataframe(protocol_df.head(20), use_container_width=True)
+                            st.dataframe(protocol_df.head(20), width='stretch')
                         except Exception as e:
                             dup1 = protocol_df.copy()
                             dup1.columns = [f"{c}_{i}" for i,c in enumerate(dup1.columns)]
-                            st.dataframe(dup1.head(20), use_container_width=True)
+                            st.dataframe(dup1.head(20), width='stretch')
 
                     if st.session_state.schedule_grid_ready:
                         with st.expander("👁️ Preview Schedule Grid", expanded=False):
-                            st.dataframe(st.session_state.schedule_grid_df.head(20), use_container_width=True)
+                            st.dataframe(st.session_state.schedule_grid_df.head(20), width='stretch')
 
                     # Cleanup
                     if os.path.exists(extracted_pdf_path):
@@ -1716,9 +1716,9 @@ if st.button("🚀 Process Documents", type="primary", use_container_width=True)
 
                 with st.expander("👁️ Preview CRF Data", expanded=False):
                     st.markdown("**Raw Extracted Data:**")
-                    st.dataframe(crf_df.head(20), use_container_width=True)
+                    st.dataframe(crf_df.head(20), width='stretch')
                     st.markdown("**Mapped to Template:**")
-                    st.dataframe(final_crf.head(20), use_container_width=True)
+                    st.dataframe(final_crf.head(20), width='stretch')
             else:
                 st.warning("⚠️ No CRF data extracted")
                 
@@ -1763,7 +1763,7 @@ if st.session_state.combined_excel is not None:
             file_name=f'clinical_study_data_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx',
             mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             type='primary',
-            use_container_width=True,
+            width='stretch',
             key='download_combined_excel'
         )
     st.markdown("---")
@@ -1781,7 +1781,7 @@ if st.session_state.protocol_ready:
             data=st.session_state.protocol_df.to_csv(index=False).encode('utf-8'),
             file_name=f'protocol_extraction_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv',
             mime='text/csv',
-            use_container_width=True,
+            width='stretch',
             key='download_protocol_csv'
         )
     st.markdown("---")
@@ -1803,7 +1803,7 @@ if st.session_state.schedule_grid_ready:
             data=st.session_state.schedule_grid_df.to_csv(index=False).encode('utf-8'),
             file_name=f'schedule_grid_mapped_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv',
             mime='text/csv',
-            use_container_width=True,
+            width='stretch',
             key='download_schedule_csv'
         )
     st.markdown("---")
@@ -1821,7 +1821,7 @@ if st.session_state.crf_ready:
             data=st.session_state.crf_df.to_csv(index=False).encode('utf-8'),
             file_name=f'crf_extraction_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv',
             mime='text/csv',
-            use_container_width=True,
+            width='stretch',
             key='download_crf_csv'
         )
     st.markdown("---")
@@ -1834,7 +1834,7 @@ elif st.session_state.crf_error:
 if (st.session_state.protocol_ready or st.session_state.schedule_grid_ready or st.session_state.crf_ready or
     st.session_state.protocol_error or st.session_state.crf_error):
     st.markdown("---")
-    if st.button('🔄 Process New Documents', use_container_width=True):
+    if st.button('🔄 Process New Documents', width='stretch'):
         # Clear session state
         st.session_state.protocol_df = None
         st.session_state.schedule_grid_df = None

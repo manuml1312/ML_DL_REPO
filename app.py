@@ -252,16 +252,49 @@ def map_protocol_to_schedule_grid(protocol_df):
             return pd.DataFrame()
 
         # Check if required rows exist
-        required_procedures = ['Visit short name', 'Study week', 'Visit window (days)']
+        # required_procedures = ['Visit short name', 'Study week', 'Visit window (days)']
+        # if 'Procedure' not in protocol_df.columns:
+        #     print("[SCHEDULE_GRID] Error: 'Procedure' column not found")
+        #     return pd.DataFrame()
+
+        # available_procedures = protocol_df['Procedure'].tolist()
+        # missing_procedures = [p for p in required_procedures if p not in available_procedures]
+        # if missing_procedures:
+        #     print(f"[SCHEDULE_GRID] Error: Missing required procedures: {missing_procedures}")
+        #     return pd.DataFrame()
+        # Check if required rows exist with flexible pattern matching
+        required_patterns = {
+            'visit_short_name': ['visit short name', 'visit name', 'short name', 'visit id'],
+            'study_week': ['study week', 'week', 'study day', 'timepoint'],
+            'visit_window': ['visit window', 'window', 'window days', 'visit window (days)']
+        }
+        
         if 'Procedure' not in protocol_df.columns:
             print("[SCHEDULE_GRID] Error: 'Procedure' column not found")
             return pd.DataFrame()
-
-        available_procedures = protocol_df['Procedure'].tolist()
-        missing_procedures = [p for p in required_procedures if p not in available_procedures]
-        if missing_procedures:
-            print(f"[SCHEDULE_GRID] Error: Missing required procedures: {missing_procedures}")
+        
+        # Find matches for each required pattern
+        found_rows = {}
+        missing_patterns = []
+        
+        for key, patterns in required_patterns.items():
+            found = False
+            for pattern in patterns:
+                for idx, value in enumerate(protocol_df['Procedure']):
+                    if pd.notna(value) and pattern.lower() in str(value).lower():
+                        found_rows[key] = idx
+                        found = True
+                        break
+                if found:
+                    break
+            if not found:
+                missing_patterns.append(key)
+        
+        if missing_patterns:
+            print(f"[SCHEDULE_GRID] Error: Missing required patterns: {missing_patterns}")
             return pd.DataFrame()
+
+# Access matched rows using: found_rows['visit_short_name'], found_rows['study_week'], etc.
 
         # Extract relevant rows from protocol dataframe
         visit_names = protocol_df[protocol_df['Procedure'] == 'Visit short name'].iloc[0, 2:].values

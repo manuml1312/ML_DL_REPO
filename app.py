@@ -269,10 +269,15 @@ def map_protocol_to_schedule_grid(protocol_df):
             'visit_window': ['visit window', 'window', 'window days', 'visit window (days)']
         }
         
-        if 'Procedure' not in protocol_df.columns:
-            print("[SCHEDULE_GRID] Error: 'Procedure' column not found")
+        procedure_column = None
+        for col in protocol_df.columns:
+            if 'procedure' in str(col).lower():
+                procedure_column = col
+                break
+                        
+        if procedure_column is None:
+            st.write("[SCHEDULE_GRID] Error: 'Procedure' column not found")
             return pd.DataFrame()
-        
         # Find matches for each required pattern
         found_rows = {}
         missing_patterns = []
